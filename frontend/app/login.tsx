@@ -4,9 +4,11 @@ import { Link, useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,16 +20,8 @@ export default function LoginScreen() {
     }
     try {
       setLoading(true);
-      // TODO: Replace with real backend endpoint
-      // const res = await fetch('http://127.0.0.1:8000/api/auth/login/', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await res.json();
-      // if (!res.ok) throw new Error(data?.detail || 'Login failed');
-      Alert.alert('Success', 'Logged in (mock).');
-      router.replace('/');
+      await login(email, password);
+      router.replace('/search');
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Login failed');
     } finally {

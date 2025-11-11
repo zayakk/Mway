@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Api, City, Station } from '@/lib/api';
+import { Dropdown } from '@/components/dropdown';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -40,13 +41,11 @@ export default function SearchScreen() {
     <ThemedView style={styles.container}>
       <ThemedText type="title">Search trips</ThemedText>
 
-      <ThemedText>From city</ThemedText>
-      <Picker data={cities} value={originCity} onChange={setOriginCity} />
+      <Dropdown label="From city" options={cities} value={originCity} onChange={setOriginCity} />
       <ThemedText>From station</ThemedText>
       <Picker data={originStations} value={origin} onChange={setOrigin} />
 
-      <ThemedText>To city</ThemedText>
-      <Picker data={cities} value={destCity} onChange={setDestCity} />
+      <Dropdown label="To city" options={cities} value={destCity} onChange={setDestCity} />
       <ThemedText>To station</ThemedText>
       <Picker data={destStations} value={destination} onChange={setDestination} />
 
