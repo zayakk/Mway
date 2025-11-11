@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Api, Trip } from '@/lib/api';
+import { saveBooking } from '@/lib/orders';
 
 export default function Checkout() {
   const { tripId, seats } = useLocalSearchParams<{ tripId: string; seats: string }>();
@@ -35,6 +36,17 @@ export default function Checkout() {
     try {
       setLoading(true);
       const result = await Api.book({ trip: Number(tripId), seats: selectedSeats, passenger: { name, phone } });
+      // persist to local history
+      try {
+        await saveBooking({
+          id: result?.id ?? `${tripId}-${Date.now()}`,
+          trip: Number(tripId),
+          seats: selectedSeats,
+          total,
+          status: result?.status ?? 'confirmed',
+          payload: result,
+        });
+      } catch {}
       router.replace({ pathname: '/confirmation', params: { booking: JSON.stringify(result) } });
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Booking failed');

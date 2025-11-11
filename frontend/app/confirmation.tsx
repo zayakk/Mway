@@ -16,6 +16,11 @@ export default function Confirmation() {
           <ThemedText>Seats: {data.seats?.join(', ')}</ThemedText>
           <ThemedText>Total: ₮ {data.total}</ThemedText>
           <ThemedText>Status: {data.status}</ThemedText>
+          <View style={styles.qrBox}>
+            <ThemedText type="defaultSemiBold">QR</ThemedText>
+            <ThemedText selectable>{String(data.id)}</ThemedText>
+          </View>
+          <ThemedText>Present this QR/ID during boarding.</ThemedText>
         </View>
       ) : (
         <ThemedText>No data.</ThemedText>
@@ -26,7 +31,17 @@ export default function Confirmation() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12 },
-  card: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 12, backgroundColor: '#fff', gap: 4 },
+  card: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, padding: 12, backgroundColor: '#fff', gap: 8 },
+  qrBox: {
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#111827',
+    borderRadius: 12,
+    height: 160,
+    backgroundColor: '#fff',
+  },
 });
 
 

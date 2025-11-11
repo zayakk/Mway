@@ -40,20 +40,35 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Mongolia Intercity</ThemedText>
+        <ThemedText type="title">Хот хоорондын тээвэр</ThemedText>
         <HelloWave />
         <View style={{ marginLeft: 'auto' }}>
           <LangSwitch />
         </View>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Backend connection</ThemedText>
+        <ThemedText type="subtitle">Backend холболт</ThemedText>
         {apiError ? (
           <ThemedText>{`Error: ${apiError}`}</ThemedText>
         ) : (
           <ThemedText>{apiMessage ?? 'Contacting API…'}</ThemedText>
         )}
-        <ThemedText>{`Endpoint: ${API_URL}`}</ThemedText>
+        <ThemedText>{`API: ${API_URL}`}</ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Хэрэглэгч</ThemedText>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Link href="/login">
+            <Link.Trigger>
+              <ThemedText type="defaultSemiBold" style={styles.buttonLike}>Нэвтрэх</ThemedText>
+            </Link.Trigger>
+          </Link>
+          <Link href="/register">
+            <Link.Trigger>
+              <ThemedText type="defaultSemiBold" style={styles.buttonLike}>Бүртгүүлэх</ThemedText>
+            </Link.Trigger>
+          </Link>
+        </View>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <HomeQuickSearch />
@@ -61,7 +76,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.stepContainer}>
         <Link href="/modal">
           <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
+            <ThemedText type="subtitle">Мэдээлэл</ThemedText>
           </Link.Trigger>
           <Link.Preview />
           <Link.Menu>
@@ -83,18 +98,26 @@ export default function HomeScreen() {
         </Link>
 
         <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+          {`Стартер аппын боломжуудыг Explore таб-аас үзнэ үү.`}
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <Link href="/search">
           <Link.Trigger>
-            <ThemedText type="subtitle">Advanced Search</ThemedText>
+            <ThemedText type="subtitle">Тасалбар хайх</ThemedText>
           </Link.Trigger>
           <Link.Preview />
         </Link>
       </ThemedView>
-      
+      <ThemedView style={styles.stepContainer}>
+        <Link href="/history">
+          <Link.Trigger>
+            <ThemedText type="subtitle">Захиалгын түүх</ThemedText>
+          </Link.Trigger>
+          <Link.Preview />
+        </Link>
+      </ThemedView>
+    
     </ParallaxScrollView>
   );
 }
@@ -108,6 +131,14 @@ const styles = StyleSheet.create({
   stepContainer: {
     gap: 8,
     marginBottom: 8,
+  },
+  buttonLike: {
+    backgroundColor: '#e0f2fe',
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   reactLogo: {
     height: 178,
