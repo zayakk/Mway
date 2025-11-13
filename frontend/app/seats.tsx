@@ -1,81 +1,88 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SeatGrid, SeatCell } from '@/components/seat-grid';
-import { useI18n } from '@/i18n';
-import { LangSwitch } from '@/components/lang-switch';
-import { Api } from '@/lib/api';
-import { useRouter } from 'expo-router';
+import { Api, Trip } from '@/lib/api';
 
-// Demo layout approximating 2+2 with 11 rows + back row (5 seats)
 function buildDemoLayout(): SeatCell[][] {
   const rows: SeatCell[][] = [];
   let n = 1;
   for (let i = 0; i < 10; i += 1) {
     rows.push([
-      { code: String(n++) },
-      { code: String(n++) },
+      { code: String(n++), status: 'available' },
+      { code: String(n++), status: 'available' },
       { code: null },
-      { code: String(n++) },
-      { code: String(n++) },
+      { code: String(n++), status: 'available' },
+      { code: String(n++), status: 'available' },
     ]);
   }
-  // middle rows reserve some seats
+  // Mark some as reserved
   rows[1][0].status = 'reserved'; // 3
   rows[2][4].status = 'reserved'; // 8
   rows[5][1].status = 'reserved'; // 22
+  rows[6][3].status = 'reserved'; // 24
+  rows[7][0].status = 'reserved'; // 25
+  rows[8][2].status = 'reserved'; // 28
+  rows[9][1].status = 'reserved'; // 30
+  rows[9][3].status = 'reserved'; // 32
 
-  // back row with 4 seats + aisle filler (5th keeps grid): 41-45
+  // Back row
   rows.push([
-    { code: String(n++) },
-    { code: String(n++) },
-    { code: String(n++) }, // center back
-    { code: String(n++) },
-    { code: String(n++) },
+    { code: String(n++), status: 'available' },
+    { code: String(n++), status: 'available' },
+    { code: String(n++), status: 'available' },
+    { code: String(n++), status: 'available' },
+    { code: String(n++), status: 'available' },
   ]);
   return rows;
 }
 
 export default function SeatsScreen() {
   const params = useLocalSearchParams<{ tripId?: string }>();
+  const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [layout, setLayout] = useState<SeatCell[][]>(buildDemoLayout());
+  const [trip, setTrip] = useState<Trip | null>(null);
   const maxSelect = 4;
-  const { t } = useI18n();
-  const router = useRouter();
 
-  // Load layout from backend if tripId is provided
   useEffect(() => {
     const id = params?.tripId ? Number(params.tripId) : null;
     if (!id) return;
+    
+    Api.trip(id)
+      .then(setTrip)
+      .catch(() => {});
+
     Api.tripSeats(id)
       .then((res) => {
-        // backend returns cells with keys { code, status? } or null codes for aisle
         const serverLayout = (res.layout || []) as any[];
         const mapped: SeatCell[][] = serverLayout.map((row: any[]) =>
-          row.map((cell: any) => ({ code: cell?.code ?? null, status: cell?.status }))
+          row.map((cell: any) => {
+            if (!cell?.code) return { code: null };
+            const status = cell.status === 'booked' || cell.status === 'locked' ? 'reserved' : 'available';
+            return { code: cell.code, status };
+          })
         );
-        setLayout(mapped);
+        if (mapped.length > 0) {
+          setLayout(mapped);
+        }
       })
-      .catch(() => {
-        // keep demo layout on failure
-      });
+      .catch(() => {});
   }, [params?.tripId]);
 
   const toggle = (code: string) => {
-    // find status: if reserved/disabled, ignore
     const flat = layout.flat();
     const seat = flat.find((c) => c.code === code);
-    if (!seat || seat.status === 'reserved' || seat.status === 'disabled') return;
+    if (!seat || seat.status === 'reserved') return;
 
     const next = new Set(selected);
     if (next.has(code)) {
       next.delete(code);
     } else {
       if (next.size >= maxSelect) {
-        Alert.alert('Limit', t('seats.limit', { n: maxSelect }));
+        Alert.alert('Хязгаар', `Хамгийн ихдээ ${maxSelect} суудал сонгох боломжтой`);
         return;
       }
       next.add(code);
@@ -85,78 +92,353 @@ export default function SeatsScreen() {
 
   const onProceed = () => {
     if (!selected.size) {
-      Alert.alert('Select', t('seats.pickOne'));
+      Alert.alert('Сонгох', 'Хамгийн багадаа нэг суудал сонгоно уу');
       return;
     }
-    const s = Array.from(selected).sort((a,b)=>Number(a)-Number(b)).join(', ');
+    const s = Array.from(selected).sort((a, b) => Number(a) - Number(b)).join(', ');
     if (params?.tripId) {
       router.push({ pathname: '/checkout', params: { tripId: String(params.tripId), seats: s } });
-    } else {
-      Alert.alert('Confirm', `Selected seats: ${s}`);
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const availableCount = layout.flat().filter(c => c.code && c.status === 'available').length;
+
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.topBar}>
-        <ThemedText type="title">{t('seats.title')}</ThemedText>
-        <LangSwitch />
-      </View>
-      <View style={styles.gridWrap}>
-        <SeatGrid layout={layout} selected={selected} onToggle={toggle} />
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText style={styles.backIcon}>‹</ThemedText>
+        </Pressable>
+        <View style={styles.headerContent}>
+          <ThemedText style={styles.routeText}>
+            {trip ? `${trip.route.origin.city.name} - ${trip.route.destination.city.name}` : 'Route'}
+          </ThemedText>
+          <ThemedText style={styles.dateText}>
+            {trip ? formatDate(trip.depart_at) : formatDate(new Date().toISOString())}
+          </ThemedText>
+        </View>
       </View>
 
-      <View style={styles.legend}>
-        <Legend color="#fff" border="#cbd5e1" label={t('seats.legend.available')} />
-        <Legend color="#e0f2fe" border="#38bdf8" label={t('seats.legend.selected')} />
-        <Legend color="#e5e7eb" border="#9ca3af" label={t('seats.legend.reserved')} />
-      </View>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Bus Details Card */}
+        <View style={styles.busDetailsCard}>
+          <View style={styles.busHeader}>
+            <ThemedText style={styles.busIcon}>🚌</ThemedText>
+            <ThemedText style={styles.busNumber}>
+              {trip?.bus?.plate_number || 'N/A'} УКМ
+            </ThemedText>
+          </View>
+          
+          <View style={styles.busInfo}>
+            <View style={styles.busInfoRow}>
+              <ThemedText style={styles.busInfoLabel}>Аж ахуй нэгж:</ThemedText>
+              <ThemedText style={styles.busInfoValue}>
+                {trip?.operator?.name || trip?.bus?.operator_name || 'N/A'}
+              </ThemedText>
+            </View>
+            {trip?.bus?.insurance_company && (
+              <View style={styles.busInfoRow}>
+                <ThemedText style={styles.busInfoLabel}>Даатгал:</ThemedText>
+                <ThemedText style={styles.busInfoValue}>
+                  {trip.bus.insurance_company}
+                </ThemedText>
+              </View>
+            )}
+            {trip?.bus?.insurance_fee && (
+              <View style={styles.busInfoRow}>
+                <ThemedText style={styles.busInfoLabel}>Даатгалын шимтгэл:</ThemedText>
+                <ThemedText style={styles.busInfoValue}>
+                  {parseFloat(trip.bus.insurance_fee).toLocaleString()} MNT
+                </ThemedText>
+              </View>
+            )}
+            <View style={styles.busInfoRow}>
+              <ThemedText style={styles.busInfoLabel}>Марк загвар:</ThemedText>
+              <ThemedText style={styles.busInfoValue}>
+                {trip?.bus?.bus_type || 'N/A'}
+              </ThemedText>
+            </View>
+            {trip?.bus?.total_seats && (
+              <View style={styles.busInfoRow}>
+                <ThemedText style={styles.busInfoLabel}>Нийт суудал:</ThemedText>
+                <ThemedText style={styles.busInfoValue}>
+                  {trip.bus.total_seats}
+                </ThemedText>
+              </View>
+            )}
+            {trip?.available_seats !== undefined && (
+              <View style={styles.busInfoRow}>
+                <ThemedText style={styles.busInfoLabel}>Боломжтой суудал:</ThemedText>
+                <ThemedText style={styles.busInfoValue}>
+                  {trip.available_seats}
+                </ThemedText>
+              </View>
+            )}
+            {trip?.bus?.amenities && (
+              <View style={styles.busInfoRow}>
+                <ThemedText style={styles.busInfoLabel}>Тоног төхөөрөмж:</ThemedText>
+                <ThemedText style={styles.busInfoValue}>
+                  {trip.bus.amenities}
+                </ThemedText>
+              </View>
+            )}
+            {trip && (
+              <>
+                <View style={styles.busInfoDivider} />
+                <View style={styles.busInfoRow}>
+                  <ThemedText style={styles.busInfoLabel}>Хөдөлгөөн:</ThemedText>
+                  <ThemedText style={styles.busInfoValue}>
+                    {formatTime(trip.depart_at)} - {formatTime(trip.arrive_at)}
+                  </ThemedText>
+                </View>
+                <View style={styles.busInfoRow}>
+                  <ThemedText style={styles.busInfoLabel}>Зорчигч:</ThemedText>
+                  <ThemedText style={styles.busInfoValue}>
+                    {trip.route?.origin?.name || trip.route?.origin?.city?.name} → {trip.route?.destination?.name || trip.route?.destination?.city?.name}
+                  </ThemedText>
+                </View>
+                <View style={styles.busInfoRow}>
+                  <ThemedText style={styles.busInfoLabel}>Зай:</ThemedText>
+                  <ThemedText style={styles.busInfoValue}>
+                    {trip.route?.distance_km || 0} км
+                  </ThemedText>
+                </View>
+                <View style={styles.busInfoRow}>
+                  <ThemedText style={styles.busInfoLabel}>Үнэ:</ThemedText>
+                  <ThemedText style={styles.busInfoValue}>
+                    {trip.base_price} MNT
+                  </ThemedText>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
 
+        {/* Seat Selection Title */}
+        <ThemedText style={styles.seatTitle}>Суудал сонгох</ThemedText>
+
+        {/* Legend */}
+        <View style={styles.legend}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendCircle, styles.legendAvailable]} />
+            <ThemedText style={styles.legendText}>
+              Боломжтой - {availableCount}
+            </ThemedText>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendCircle, styles.legendUnavailable]} />
+            <ThemedText style={styles.legendText}>Боломжгүй</ThemedText>
+          </View>
+        </View>
+
+        {/* Seat Grid */}
+        <View style={styles.gridContainer}>
+          <SeatGrid layout={layout} selected={selected} onToggle={toggle} />
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
       <View style={styles.footer}>
-        <ThemedText>
-          Сонгосон: {Array.from(selected).sort((a,b)=>Number(a)-Number(b)).join(', ') || '—'}
+        <ThemedText style={styles.selectedText}>
+          Сонгосон: {Array.from(selected).sort((a, b) => Number(a) - Number(b)).join(', ') || '—'}
         </ThemedText>
-        <Pressable onPress={onProceed} style={({ pressed }) => [styles.cta, pressed && { opacity: 0.9 }]}>
-          <ThemedText type="defaultSemiBold">{t('seats.continue')}</ThemedText>
+        <Pressable 
+          onPress={onProceed} 
+          style={({ pressed }) => [styles.continueButton, pressed && styles.continueButtonPressed]}
+          disabled={selected.size === 0}
+        >
+          <ThemedText style={styles.continueButtonText}>Үргэлжлүүлэх</ThemedText>
         </Pressable>
       </View>
     </ThemedView>
   );
 }
 
-function Legend({ color, border, label }: { color: string; border: string; label: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendSwatch, { backgroundColor: color, borderColor: border }]} />
-      <ThemedText>{label}</ThemedText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 16 },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  gridWrap: { alignItems: 'center' },
-  legend: { flexDirection: 'row', gap: 16, justifyContent: 'center' },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  legendSwatch: { width: 28, height: 20, borderWidth: 1, borderRadius: 6 },
-  footer: {
-    marginTop: 'auto',
-    paddingVertical: 12,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#111827',
+    fontWeight: 'bold',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  routeText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  busDetailsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  busHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  busIcon: {
+    fontSize: 24,
+  },
+  busNumber: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  busInfo: {
+    gap: 12,
+  },
+  busInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderColor: '#e5e7eb',
+    paddingVertical: 4,
   },
-  cta: {
-    backgroundColor: '#e0f2fe',
+  busInfoLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    flex: 1,
+  },
+  busInfoValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+  },
+  busInfoDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 8,
+  },
+  seatTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  legend: {
+    flexDirection: 'row',
+    gap: 24,
+    marginBottom: 16,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  legendCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#38bdf8',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
+  },
+  legendAvailable: {
+    backgroundColor: '#fff',
+    borderColor: '#cbd5e1',
+  },
+  legendUnavailable: {
+    backgroundColor: '#e5e7eb',
+    borderColor: '#9ca3af',
+  },
+  legendText: {
+    fontSize: 14,
+    color: '#374151',
+  },
+  gridContainer: {
+    marginBottom: 24,
+  },
+  footer: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16,
+  },
+  selectedText: {
+    fontSize: 14,
+    color: '#374151',
+    flex: 1,
+  },
+  continueButton: {
+    backgroundColor: '#f97316',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  continueButtonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  continueButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
-
-

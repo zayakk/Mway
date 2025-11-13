@@ -1,109 +1,111 @@
-## Django + Expo Starter
+# Mway - Bus Booking System
 
-This workspace contains:
+Django REST API backend + Expo React Native frontend
 
-- `backend` — Django REST backend (to be created after installing Python)
-- `mobile` — Expo React Native app (already initialized)
+## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js (installed)
 - Python 3.11+ (install from the Microsoft Store or python.org)
 
+### Fast Setup (First Time)
+
+**Backend:**
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install django djangorestframework django-cors-headers
+.\.venv\Scripts\python.exe manage.py migrate
+```
+
+**Frontend:**
+```powershell
+cd frontend
+npm install
+```
+
+### Start Development Servers
+
+**Terminal 1 - Backend:**
+```powershell
+cd backend
+.\.venv\Scripts\python.exe manage.py runserver
+```
+Backend runs at: `http://127.0.0.1:8000/`
+
+**Terminal 2 - Frontend:**
+```powershell
+cd frontend
+npm start
+```
+Then press:
+- `w` for web browser
+- `a` for Android emulator
+- `i` for iOS simulator
+- Scan QR code with Expo Go app
+
+---
+
+## 📚 Detailed Setup (Reference)
+
 ### Backend (Django)
 
-1) Open a terminal in `Mway/backend` and create a virtual environment:
+The backend is already configured with:
+- Django 5.2.8
+- Django REST Framework
+- django-cors-headers
+- SQLite database
 
+**Virtual Environment:**
 ```powershell
+cd backend
 python -m venv .venv
-.\.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install django djangorestframework django-cors-headers
 ```
 
-2) Initialize the project and an API app:
-
-```powershell
-django-admin startproject core .
-python manage.py startapp api
-```
-
-3) In `core/settings.py`, add to `INSTALLED_APPS`:
-
-```python
-'rest_framework',
-'corsheaders',
-'api',
-```
-
-And add CORS middleware at the top of `MIDDLEWARE`:
-
-```python
-'corsheaders.middleware.CorsMiddleware',
-```
-
-Allow local Expo/web origins during development:
-
-```python
-CORS_ALLOW_ALL_ORIGINS = True  # dev only
-```
-
-4) Create a simple hello endpoint in `api/views.py`:
-
-```python
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-
-@api_view(["GET"])
-def hello(request):
-    return Response({"message": "Hello from Django API"})
-```
-
-And wire URLs:
-
-`api/urls.py`
-```python
-from django.urls import path
-from .views import hello
-
-urlpatterns = [
-    path("hello/", hello, name="hello"),
-]
-```
-
-`core/urls.py`
-```python
-from django.urls import path, include
-
-urlpatterns = [
-    path("api/", include("api.urls")),
-]
-```
-
-5) Run the server:
-
+**Run Migrations:**
 ```powershell
 python manage.py migrate
-python manage.py runserver 0.0.0.0:8000
 ```
 
-### Mobile (Expo)
+**Start Server:**
+```powershell
+python manage.py runserver
+```
 
-1) From `Mway/mobile`, start the app:
+### Frontend (Expo)
 
+**Install Dependencies:**
+```powershell
+cd frontend
+npm install
+```
+
+**Start Development Server:**
 ```powershell
 npm start
 ```
 
-2) The mobile app tries to fetch from `http://127.0.0.1:8000/api/hello/` on launch. If the backend isn't running, you'll see a friendly message. Once Django is running, it will show the API message.
+### API Endpoints
 
-3) For testing on a physical device, ensure your phone can reach your computer's IP. Replace the URL in `mobile/App.js` with your machine's LAN IP, e.g. `http://192.168.1.100:8000/api/hello/`.
+- `http://127.0.0.1:8000/api/hello/` - Test endpoint
+- `http://127.0.0.1:8000/api/cities/` - List cities
+- `http://127.0.0.1:8000/api/stations/` - List stations
+- `http://127.0.0.1:8000/api/search/` - Search trips
+- `http://127.0.0.1:8000/api/trips/<id>/` - Trip details
+- `http://127.0.0.1:8000/api/trips/<id>/seats/` - Trip seat map
+- `http://127.0.0.1:8000/api/book/` - Book tickets
+- `http://127.0.0.1:8000/api/holds/` - Hold seats
+- `http://127.0.0.1:8000/api/auth/register/` - User registration
+- `http://127.0.0.1:8000/api/auth/login/` - User login
+- `http://127.0.0.1:8000/api/auth/me/` - Get current user
+- `http://127.0.0.1:8000/admin/` - Django admin panel
 
 ### Notes
 
 - Keep `CORS_ALLOW_ALL_ORIGINS = True` only for development. Lock it down for production.
 - If `python` is not recognized, install Python and reopen the terminal.
-
-
-
-
+- For testing on a physical device, ensure your phone can reach your computer's IP address.

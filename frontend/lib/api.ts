@@ -15,7 +15,20 @@ export type Trip = {
   base_price: string;
   route: { origin: Station; destination: Station; distance_km: number };
   operator: { id: number; name: string };
-  bus: { id: number; plate_number: string };
+  bus: { 
+    id: number; 
+    plate_number: string;
+    bus_number?: string;
+    bus_type?: string;
+    operator_name?: string;
+    total_seats?: number;
+    amenities?: string;
+    insurance_company?: string;
+    insurance_fee?: string;
+    status?: string;
+  };
+  available_seats?: number;
+  status?: string;
 };
 
 export const Api = {

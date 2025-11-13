@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.utils.dateparse import parse_date
 from django.db.models import Q
 from .models import Trip, Route, City, Seat, Bus, BookingSeat, SeatLock
-from .serializers import TripSerializer, CitySerializer
+from .serializers import TripSerializer, CitySerializer, TripSearchSerializer, TripDetailSerializer
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
@@ -80,7 +80,7 @@ def search_trips(request):
         )
         .order_by("departure_datetime")
     )
-    data = TripSerializer(qs, many=True).data
+    data = TripSearchSerializer(qs, many=True).data
     return Response({"results": data, "count": len(data)})
 
 @api_view(["GET"])
@@ -130,7 +130,7 @@ def trip_detail(request, trip_id: int):
         trip = Trip.objects.select_related("route", "route__origin_city", "route__destination_city", "bus").get(id=trip_id)
     except Trip.DoesNotExist:
         return Response({"detail": "Trip not found"}, status=404)
-    return Response(TripSerializer(trip).data)
+    return Response(TripDetailSerializer(trip).data)
 
 @api_view(["POST"])
 def book(request):

@@ -20,7 +20,7 @@ class RouteSerializer(serializers.ModelSerializer):
 class BusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bus
-        fields = ["id", "operator_name", "bus_number", "bus_type", "total_seats", "amenities", "status"]
+        fields = ["id", "operator_name", "bus_number", "bus_type", "total_seats", "amenities", "insurance_company", "insurance_fee", "status"]
 
 
 class SeatSerializer(serializers.ModelSerializer):
@@ -45,6 +45,133 @@ class TripSerializer(serializers.ModelSerializer):
             "available_seats",
             "status",
         ]
+
+
+class TripDetailSerializer(serializers.ModelSerializer):
+    """Serializer for trip detail endpoint matching frontend expectations"""
+    depart_at = serializers.DateTimeField(source='departure_datetime', read_only=True)
+    arrive_at = serializers.DateTimeField(source='arrival_datetime', read_only=True)
+    base_price = serializers.DecimalField(source='base_fare', max_digits=10, decimal_places=2, read_only=True)
+    route = serializers.SerializerMethodField()
+    operator = serializers.SerializerMethodField()
+    bus = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Trip
+        fields = [
+            "id",
+            "depart_at",
+            "arrive_at",
+            "base_price",
+            "route",
+            "operator",
+            "bus",
+            "available_seats",
+            "status",
+        ]
+
+    def get_route(self, obj):
+        """Transform route to match frontend format with origin/destination stations"""
+        origin_city = obj.route.origin_city
+        dest_city = obj.route.destination_city
+        return {
+            "origin": {
+                "id": origin_city.id,
+                "name": f"{origin_city.name} station",
+                "city": CitySerializer(origin_city).data
+            },
+            "destination": {
+                "id": dest_city.id,
+                "name": f"{dest_city.name} station",
+                "city": CitySerializer(dest_city).data
+            },
+            "distance_km": float(obj.route.distance_km) if obj.route.distance_km else 0,
+        }
+
+    def get_operator(self, obj):
+        """Extract operator info from bus"""
+        return {
+            "id": obj.bus.id,
+            "name": obj.bus.operator_name,
+        }
+
+    def get_bus(self, obj):
+        """Return bus info with all fields"""
+        return {
+            "id": obj.bus.id,
+            "plate_number": obj.bus.bus_number,
+            "bus_number": obj.bus.bus_number,
+            "bus_type": obj.bus.bus_type,
+            "operator_name": obj.bus.operator_name,
+            "total_seats": obj.bus.total_seats,
+            "amenities": obj.bus.amenities,
+            "insurance_company": obj.bus.insurance_company,
+            "insurance_fee": str(obj.bus.insurance_fee),
+            "status": obj.bus.status,
+        }
+
+
+class StationSerializer(serializers.Serializer):
+    """Pseudo-station serializer for frontend compatibility"""
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    city = CitySerializer()
+
+
+class TripSearchSerializer(serializers.ModelSerializer):
+    """Custom serializer for search endpoint matching frontend expectations"""
+    depart_at = serializers.DateTimeField(source='departure_datetime', read_only=True)
+    arrive_at = serializers.DateTimeField(source='arrival_datetime', read_only=True)
+    base_price = serializers.DecimalField(source='base_fare', max_digits=10, decimal_places=2, read_only=True)
+    route = serializers.SerializerMethodField()
+    operator = serializers.SerializerMethodField()
+    bus = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Trip
+        fields = [
+            "id",
+            "depart_at",
+            "arrive_at",
+            "base_price",
+            "route",
+            "operator",
+            "bus",
+        ]
+
+    def get_route(self, obj):
+        """Transform route to match frontend format with origin/destination stations"""
+        origin_city = obj.route.origin_city
+        dest_city = obj.route.destination_city
+        return {
+            "origin": {
+                "id": origin_city.id,
+                "name": f"{origin_city.name} station",
+                "city": CitySerializer(origin_city).data
+            },
+            "destination": {
+                "id": dest_city.id,
+                "name": f"{dest_city.name} station",
+                "city": CitySerializer(dest_city).data
+            },
+            "distance_km": float(obj.route.distance_km) if obj.route.distance_km else 0,
+        }
+
+    def get_operator(self, obj):
+        """Extract operator info from bus"""
+        return {
+            "id": obj.bus.id,
+            "name": obj.bus.operator_name,
+        }
+
+    def get_bus(self, obj):
+        """Return simplified bus info"""
+        return {
+            "id": obj.bus.id,
+            "plate_number": obj.bus.bus_number,
+            "insurance_company": obj.bus.insurance_company,
+            "insurance_fee": str(obj.bus.insurance_fee),
+        }
 
 
 class BookingSeatSerializer(serializers.ModelSerializer):

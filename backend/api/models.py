@@ -28,6 +28,8 @@ class Bus(models.Model):
     bus_type = models.CharField(max_length=50)  # VIP / Express / etc
     total_seats = models.PositiveIntegerField()
     amenities = models.TextField(blank=True, null=True)
+    insurance_company = models.CharField(max_length=100, default='Нэйшнл эженси', blank=True)
+    insurance_fee = models.DecimalField(max_digits=10, decimal_places=2, default=1600.00)
     status = models.CharField(
         max_length=20,
         choices=[

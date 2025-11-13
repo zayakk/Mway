@@ -31,33 +31,76 @@ export default function LoginScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">Sign in</ThemedText>
-      <View style={styles.form}>
-        <ThemedText>Email</ThemedText>
-        <TextInput
-          placeholder="you@example.com"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          style={styles.input}
-        />
-        <ThemedText>Password</ThemedText>
-        <TextInput
-          placeholder="Your password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
-        <Pressable onPress={onSubmit} style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]} disabled={loading}>
-          <ThemedText type="defaultSemiBold">{loading ? 'Signing in…' : 'Sign in'}</ThemedText>
-        </Pressable>
-        <View style={styles.row}>
-          <ThemedText>New here? </ThemedText>
-          <Link href="/register">
-            <ThemedText type="link">Create an account</ThemedText>
-          </Link>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <ThemedText style={styles.logoIcon}>🚌</ThemedText>
+          </View>
+          <ThemedText style={styles.appTitle}>Mway</ThemedText>
+          <ThemedText style={styles.appSubtitle}>Book Your Journey</ThemedText>
+        </View>
+      </View>
+
+      <View style={styles.formContainer}>
+        <ThemedText type="title" style={styles.welcomeTitle}>Welcome Back</ThemedText>
+        <ThemedText style={styles.welcomeSubtitle}>Sign in to continue booking your trips</ThemedText>
+
+        <View style={styles.form}>
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Email Address</ThemedText>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder="Enter your email"
+                placeholderTextColor="#94a3b8"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                style={styles.input}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Password</ThemedText>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                placeholder="Enter your password"
+                placeholderTextColor="#94a3b8"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                style={styles.input}
+              />
+            </View>
+          </View>
+
+          <Pressable 
+            onPress={onSubmit} 
+            style={({ pressed }) => [
+              styles.button, 
+              pressed && styles.buttonPressed,
+              loading && styles.buttonDisabled
+            ]} 
+            disabled={loading}
+          >
+            <ThemedText style={styles.buttonText}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </ThemedText>
+          </Pressable>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <ThemedText style={styles.dividerText}>OR</ThemedText>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.registerRow}>
+            <ThemedText style={styles.registerText}>Don't have an account? </ThemedText>
+            <Link href="/register">
+              <ThemedText style={styles.registerLink}>Sign Up</ThemedText>
+            </Link>
+          </View>
         </View>
       </View>
     </ThemedView>
@@ -65,26 +108,145 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, gap: 16, justifyContent: 'center' },
-  form: { gap: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    backgroundColor: '#0284c7',
+  },
+  headerContent: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
+  logoIcon: {
+    fontSize: 40,
+  },
+  appTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  appSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  formContainer: {
+    flex: 1,
+    padding: 24,
+    paddingTop: 32,
+  },
+  welcomeTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1e293b',
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 32,
+  },
+  form: {
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  inputWrapper: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  input: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#1e293b',
+  },
   button: {
+    backgroundColor: '#0ea5e9',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ddd',
-    paddingVertical: 12,
-    borderRadius: 10,
+    marginTop: 8,
+    shadowColor: '#0ea5e9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: '500',
+  },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 8,
   },
-  buttonPressed: { opacity: 0.8 },
-  row: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  registerText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  registerLink: {
+    fontSize: 14,
+    color: '#0ea5e9',
+    fontWeight: '600',
+  },
 });
-
-
