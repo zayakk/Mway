@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Api, City, Station } from '@/lib/api';
+import { BrandColors } from '@/constants/theme';
 
 export default function LocationSelectScreen() {
   const rawParams = useLocalSearchParams<{ 
@@ -70,7 +71,7 @@ export default function LocationSelectScreen() {
         if (originId) params.originId = String(originId);
         if (originCityId) params.originCityId = String(originCityId);
       }
-      router.replace({ pathname: '/search', params });
+      router.replace({ pathname: '/', params });
     }
   };
 
@@ -80,17 +81,27 @@ export default function LocationSelectScreen() {
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={styles.backIcon}>‹</ThemedText>
         </Pressable>
-        <ThemedText style={styles.headerTitle}>
-          {type === 'origin' ? 'Хаанаас' : 'Хаашаа'}
-        </ThemedText>
+        <View style={styles.headerContent}>
+          <ThemedText style={styles.headerTitle}>
+            {type === 'origin' ? 'Явах хот, буудал' : 'Очих хот, буудал'}
+          </ThemedText>
+          <ThemedText style={styles.headerSubtitle}>
+            {type === 'origin'
+              ? 'Явж буй газраа сонгоод суудлаа баталгаажуул'
+              : 'Очих газраа тодорхойлж төгс аяллаа төлөвлөөрэй'}
+          </ThemedText>
+        </View>
       </View>
 
-      <View style={styles.searchContainer}>
+      <View style={styles.card}>
+        <ThemedText style={styles.cardLabel}>
+          {type === 'origin' ? 'Хаанаас хайх вэ?' : 'Хаашаа хайх вэ?'}
+        </ThemedText>
         <View style={styles.searchInputWrapper}>
           <ThemedText style={styles.searchIcon}>🚌</ThemedText>
           <TextInput
             style={styles.searchInput}
-            placeholder={type === 'origin' ? 'Хаанаас: Улс, Хот, Аймаг' : 'Хаашаа: Улс, Хот, Аймаг'}
+            placeholder={type === 'origin' ? 'Хот / Аймаг / Буудлын нэр' : 'Хот / Аймаг / Буудлын нэр'}
             placeholderTextColor="#94a3b8"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -108,8 +119,13 @@ export default function LocationSelectScreen() {
               style={styles.listItem}
               onPress={() => handleSelect(city.id, city.name, true)}
             >
-              <ThemedText style={styles.listItemText}>{city.name}</ThemedText>
-              <ThemedText style={styles.listItemArrow}>›</ThemedText>
+              <View style={styles.listTextGroup}>
+                <ThemedText style={styles.listItemTitle}>{city.name}</ThemedText>
+                <ThemedText style={styles.listItemHint}>Хот сонгоод буудлын жагсаалт руу орно</ThemedText>
+              </View>
+              <View style={styles.listItemBadge}>
+                <ThemedText style={styles.listItemBadgeText}>Хот</ThemedText>
+              </View>
             </Pressable>
           ))
         ) : (
@@ -119,7 +135,10 @@ export default function LocationSelectScreen() {
               style={styles.listItem}
               onPress={() => setSelectedCity(null)}
             >
-              <ThemedText style={styles.listItemText}>← Буцах</ThemedText>
+              <View style={styles.listTextGroup}>
+                <ThemedText style={styles.listItemTitle}>← Хотын жагсаалт руу буцах</ThemedText>
+                <ThemedText style={styles.listItemHint}>Өөр хот сонгох бол энд дарна уу</ThemedText>
+              </View>
             </Pressable>
             {filteredStations.map((station) => (
               <Pressable
@@ -127,8 +146,13 @@ export default function LocationSelectScreen() {
                 style={styles.listItem}
                 onPress={() => handleSelect(station.id, station.name, false)}
               >
-                <ThemedText style={styles.listItemText}>{station.name}</ThemedText>
-                <ThemedText style={styles.listItemArrow}>›</ThemedText>
+                <View style={styles.listTextGroup}>
+                  <ThemedText style={styles.listItemTitle}>{station.name}</ThemedText>
+                  <ThemedText style={styles.listItemHint}>Буудлыг сонгоход шууд хайлтад буцаана</ThemedText>
+                </View>
+                <View style={styles.listItemBadge}>
+                  <ThemedText style={styles.listItemBadgeText}>Буудал</ThemedText>
+                </View>
               </Pressable>
             ))}
           </>
@@ -141,17 +165,15 @@ export default function LocationSelectScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: BrandColors.primary,
   },
   header: {
     paddingTop: 60,
     paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   backButton: {
     width: 32,
@@ -165,25 +187,53 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  headerSubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  card: {
+    margin: 20,
+    marginTop: 0,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   searchContainer: {
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
+  cardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 12,
+  },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e2e8f0',
   },
   searchIcon: {
     fontSize: 20,
@@ -195,25 +245,45 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: 12,
   },
   listContent: {
-    padding: 16,
+    padding: 24,
   },
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+    paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: '#ecf0f4',
   },
-  listItemText: {
+  listTextGroup: {
+    flex: 1,
+    gap: 4,
+  },
+  listItemTitle: {
     fontSize: 16,
-    color: '#111827',
+    fontWeight: '600',
+    color: '#0f172a',
   },
-  listItemArrow: {
-    fontSize: 20,
+  listItemHint: {
+    fontSize: 13,
     color: '#9ca3af',
+  },
+  listItemBadge: {
+    backgroundColor: '#e0f2fe',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  listItemBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: BrandColors.primary,
   },
 });
 

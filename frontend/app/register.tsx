@@ -4,38 +4,34 @@ import { Link, useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/lib/auth';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { register: registerUser } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async () => {
-    if (!name || !email || !password) {
-      Alert.alert('Required', 'Name, email and password are required.');
-      return;
-    }
-    if (password !== confirm) {
-      Alert.alert('Mismatch', 'Passwords do not match.');
-      return;
-    }
     try {
+      if (!name || !email || !password) {
+        setError('Нэр, имэйл, нууц үгийг бүрэн оруулна уу.');
+        return;
+      }
+      if (password !== confirm) {
+        setError('Нууц үг хоёр таарахгүй байна.');
+        return;
+      }
+      setError(null);
       setLoading(true);
-      // TODO: Replace with real backend endpoint
-      // const res = await fetch('http://127.0.0.1:8000/api/auth/register/', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ name, email, password }),
-      // });
-      // const data = await res.json();
-      // if (!res.ok) throw new Error(data?.detail || 'Registration failed');
-      Alert.alert('Success', 'Account created (mock).');
-      router.replace('/login');
+      await registerUser(name, email, password);
+      router.replace('/');
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Registration failed');
+      setError(e?.message ?? 'Бүртгэл үүсгэхэд алдаа гарлаа.');
     } finally {
       setLoading(false);
     }
@@ -62,11 +58,18 @@ export default function RegisterScreen() {
           <ThemedText type="title" style={styles.welcomeTitle}>Create Account</ThemedText>
           <ThemedText style={styles.welcomeSubtitle}>Sign up to start booking your trips</ThemedText>
 
+          {error && (
+            <View style={styles.errorBox}>
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          )}
+
           <View style={styles.form}>
             <View style={styles.inputGroup}>
               <ThemedText style={styles.label}>Full Name</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                nativeID="register-name"
                   placeholder="Enter your full name"
                   placeholderTextColor="#94a3b8"
                   value={name}
@@ -80,6 +83,8 @@ export default function RegisterScreen() {
               <ThemedText style={styles.label}>Email Address</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                nativeID="register-email"
+                autoComplete="email"
                   placeholder="Enter your email"
                   placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
@@ -95,6 +100,8 @@ export default function RegisterScreen() {
               <ThemedText style={styles.label}>Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                nativeID="register-password"
+                autoComplete="new-password"
                   placeholder="Create a password"
                   placeholderTextColor="#94a3b8"
                   secureTextEntry
@@ -109,6 +116,7 @@ export default function RegisterScreen() {
               <ThemedText style={styles.label}>Confirm Password</ThemedText>
               <View style={styles.inputWrapper}>
                 <TextInput
+                nativeID="register-confirm-password"
                   placeholder="Repeat your password"
                   placeholderTextColor="#94a3b8"
                   secureTextEntry
@@ -202,6 +210,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     paddingTop: 32,
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#b91c1c',
   },
   welcomeTitle: {
     fontSize: 28,

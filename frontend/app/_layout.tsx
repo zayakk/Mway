@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -21,24 +22,42 @@ export default function RootLayout() {
       <I18nProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthGate>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen name="login" options={{ title: 'Login' }} />
-            <Stack.Screen name="register" options={{ title: 'Register' }} />
-            <Stack.Screen name="search" options={{ title: 'Search' }} />
-            <Stack.Screen name="locationSelect" options={{ title: 'Select Location' }} />
-            <Stack.Screen name="searchResults" options={{ title: 'Search Results' }} />
-            <Stack.Screen name="seats" options={{ title: 'Select Seats' }} />
-            <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
-            <Stack.Screen name="confirmation" options={{ title: 'Confirmation' }} />
-            <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-            <Stack.Screen name="language" options={{ title: 'Language' }} />
-            <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
-            <Stack.Screen name="faqs" options={{ title: 'FAQs' }} />
-            <Stack.Screen name="contact" options={{ title: 'Contact' }} />
-            <Stack.Screen name="about" options={{ title: 'About' }} />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              gestureEnabled: true,
+              animation: Platform.select({
+                ios: 'slide_from_right',
+                android: 'fade_from_bottom',
+                default: 'fade',
+              }),
+              animationTypeForReplace: 'push',
+              contentStyle: { backgroundColor: '#f8fafc' },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="modal"
+              options={{
+                presentation: 'transparentModal',
+                animation: 'fade',
+              }}
+            />
+            <Stack.Screen name="login" options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="register" options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="search" />
+            <Stack.Screen name="locationSelect" />
+            <Stack.Screen name="searchResults" />
+            <Stack.Screen name="seats" />
+            <Stack.Screen name="checkout" />
+            <Stack.Screen name="confirmation" options={{ animation: 'fade_from_bottom' }} />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="language" />
+            <Stack.Screen name="privacy" />
+            <Stack.Screen name="faqs" />
+            <Stack.Screen name="contact" />
+            <Stack.Screen name="about" />
           </Stack>
         </AuthGate>
         <StatusBar style="auto" />
@@ -58,16 +77,16 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     
     // Wait a bit to ensure router is ready
     const timer = setTimeout(() => {
-      const last = segments[segments.length - 1];
-      const inAuth = last === 'login' || last === 'register' || last === 'index';
+      const lastSegment = segments[segments.length - 1] as string | undefined;
+      const inAuth = lastSegment === 'login' || lastSegment === 'register' || lastSegment === 'index';
       
       // Skip index - it handles its own redirect
-      if (last === 'index') return;
+      if (lastSegment === 'index') return;
       
       if (!user && !inAuth) {
         router.replace('/login');
       } else if (user && inAuth) {
-        router.replace('/search');
+        router.replace('/');
       }
     }, 100);
 

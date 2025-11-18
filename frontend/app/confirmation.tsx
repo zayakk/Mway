@@ -84,7 +84,7 @@ export default function Confirmation() {
       {/* Footer Button */}
       <View style={styles.footer}>
         <Pressable
-          onPress={() => router.replace('/search')}
+          onPress={() => router.replace('/')}
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
         >
           <ThemedText style={styles.buttonText}>Шинэ аялал хайх</ThemedText>

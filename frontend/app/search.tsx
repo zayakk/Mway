@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Api, City, Station } from '@/lib/api';
+import { BrandColors } from '@/constants/theme';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -206,7 +207,7 @@ export default function SearchScreen() {
             });
           }}
         >
-          <View style={styles.inputIcon}>🏢</View>
+          <ThemedText style={styles.inputIcon}>🏢</ThemedText>
           <View style={styles.inputContent}>
             <ThemedText style={styles.inputLabel}>Хаанаас</ThemedText>
             <ThemedText style={styles.inputValue}>
@@ -235,7 +236,7 @@ export default function SearchScreen() {
             });
           }}
         >
-          <View style={styles.inputIcon}>📍</View>
+          <ThemedText style={styles.inputIcon}>📍</ThemedText>
           <View style={styles.inputContent}>
             <ThemedText style={styles.inputLabel}>Хаашаа</ThemedText>
             <ThemedText style={styles.inputValue}>
@@ -252,7 +253,7 @@ export default function SearchScreen() {
             Alert.alert('Date Picker', 'Date picker will be implemented');
           }}
         >
-          <View style={styles.inputIcon}>📅</View>
+          <ThemedText style={styles.inputIcon}>📅</ThemedText>
           <View style={styles.inputContent}>
             <ThemedText style={styles.inputLabel}>Огноо</ThemedText>
             <ThemedText style={styles.inputValue}>{formatDate(date)}</ThemedText>
@@ -275,14 +276,18 @@ export default function SearchScreen() {
         <ThemedText style={styles.helpTitle}>Танд тусалъя</ThemedText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.helpCards}>
           <View style={styles.helpCard}>
-            <View style={styles.helpIcon}>❓</View>
+            <View style={styles.helpIcon}>
+              <ThemedText>❓</ThemedText>
+            </View>
             <ThemedText style={styles.helpQuestion}>
               Онлайн захиалгын үйлчилгээ нь ямар нэмэлт шимтгэл байгаа эсэх?
             </ThemedText>
             <ThemedText style={styles.helpAnswer}>Байхгүй.</ThemedText>
           </View>
           <View style={styles.helpCard}>
-            <View style={styles.helpIcon}>❓</View>
+            <View style={styles.helpIcon}>
+              <ThemedText>❓</ThemedText>
+            </View>
             <ThemedText style={styles.helpQuestion}>
               Захиалгаа хэрхэн цуцлах вэ?
             </ThemedText>
@@ -297,7 +302,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1f2937',
+    backgroundColor: BrandColors.primary,
   },
   header: {
     paddingTop: 60,
@@ -317,7 +322,7 @@ const styles = StyleSheet.create({
   },
   backIcon: {
     fontSize: 24,
-    color: '#1f2937',
+    color: BrandColors.primary,
     fontWeight: 'bold',
   },
   headerTitle: {
@@ -368,20 +373,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f97316',
+    backgroundColor: BrandColors.onPrimary,
     borderRadius: 12,
     padding: 16,
     gap: 8,
     marginTop: 8,
+    borderWidth: 2,
+    borderColor: BrandColors.primary,
   },
   searchButtonDisabled: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: BrandColors.buttonDisabled,
+    borderColor: BrandColors.buttonDisabled,
   },
   searchIcon: {
     fontSize: 20,
+    color: BrandColors.primary,
   },
   searchButtonText: {
-    color: '#fff',
+    color: BrandColors.primary,
     fontSize: 18,
     fontWeight: '600',
   },

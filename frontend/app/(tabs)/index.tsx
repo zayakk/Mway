@@ -1,150 +1,449 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet, View } from 'react-native';
 import { useEffect, useState } from 'react';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
+import { Alert, Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-import { HomeQuickSearch } from '@/components/home-quick-search';
-import { LangSwitch } from '@/components/lang-switch';
+import { ThemedText } from '@/components/themed-text';
+import { Api, City, Station } from '@/lib/api';
+import { BrandColors } from '@/constants/theme';
 
-const API_URL = 'http://127.0.0.1:8000/api/hello/'; // change to LAN IP on physical device
-
-export default function HomeScreen() {
-  const [apiMessage, setApiMessage] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+export default function SearchScreen() {
+  const router = useRouter();
+  const rawParams = useLocalSearchParams<{ originId?: string | string[]; destId?: string | string[]; originCityId?: string | string[]; destCityId?: string | string[] }>();
+  
+  // Normalize params (expo-router can return arrays)
+  const params = {
+    originId: Array.isArray(rawParams.originId) ? rawParams.originId[0] : rawParams.originId,
+    destId: Array.isArray(rawParams.destId) ? rawParams.destId[0] : rawParams.destId,
+    originCityId: Array.isArray(rawParams.originCityId) ? rawParams.originCityId[0] : rawParams.originCityId,
+    destCityId: Array.isArray(rawParams.destCityId) ? rawParams.destCityId[0] : rawParams.destCityId,
+  };
+  
+  const [cities, setCities] = useState<City[]>([]);
+  const [originCity, setOriginCity] = useState<number | null>(null);
+  const [destCity, setDestCity] = useState<number | null>(null);
+  const [originStations, setOriginStations] = useState<Station[]>([]);
+  const [destStations, setDestStations] = useState<Station[]>([]);
+  const [origin, setOrigin] = useState<number | null>(null);
+  const [destination, setDestination] = useState<number | null>(null);
+  const [originStationData, setOriginStationData] = useState<Station | null>(null);
+  const [destStationData, setDestStationData] = useState<Station | null>(null);
+  const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
-    let isMounted = true;
-    fetch(API_URL)
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted) setApiMessage(data?.message ?? 'No message');
-      })
-      .catch((e) => {
-        if (isMounted) setApiError(e?.message ?? 'Request failed');
-      });
-    return () => {
-      isMounted = false;
-    };
+    Api.cities()
+      .then(setCities)
+      .catch((e) => Alert.alert('Error', e.message));
   }, []);
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Хот хоорондын тээвэр</ThemedText>
-        <HelloWave />
-        <View style={{ marginLeft: 'auto' }}>
-          <LangSwitch />
-        </View>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Backend холболт</ThemedText>
-        {apiError ? (
-          <ThemedText>{`Error: ${apiError}`}</ThemedText>
-        ) : (
-          <ThemedText>{apiMessage ?? 'Contacting API…'}</ThemedText>
-        )}
-        <ThemedText>{`API: ${API_URL}`}</ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Хэрэглэгч</ThemedText>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Link href="/login">
-            <Link.Trigger>
-              <ThemedText type="defaultSemiBold" style={styles.buttonLike}>Нэвтрэх</ThemedText>
-            </Link.Trigger>
-          </Link>
-          <Link href="/register">
-            <Link.Trigger>
-              <ThemedText type="defaultSemiBold" style={styles.buttonLike}>Бүртгүүлэх</ThemedText>
-            </Link.Trigger>
-          </Link>
-        </View>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <HomeQuickSearch />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Мэдээлэл</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Стартер аппын боломжуудыг Explore таб-аас үзнэ үү.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/search">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Тасалбар хайх</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-        </Link>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/history">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Захиалгын түүх</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-        </Link>
-      </ThemedView>
+  // Update from URL params when location is selected
+  useEffect(() => {
+    if (params.originCityId) {
+      const cityId = Number(params.originCityId);
+      if (cityId && !isNaN(cityId)) {
+        setOriginCity(cityId);
+      }
+    }
+    if (params.destCityId) {
+      const cityId = Number(params.destCityId);
+      if (cityId && !isNaN(cityId)) {
+        setDestCity(cityId);
+      }
+    }
+  }, [params.originCityId, params.destCityId]);
+
+  useEffect(() => {
+    if (originCity) {
+      Api.stations(originCity)
+        .then((stations) => {
+          setOriginStations(stations);
+          // Set origin station if provided in params
+          if (params.originId) {
+            const stationId = Number(params.originId);
+            const station = stations.find(s => s.id === stationId);
+            if (station) {
+              setOrigin(stationId);
+              setOriginStationData(station);
+              // Ensure city is set from station
+              if (station.city && station.city.id !== originCity) {
+                setOriginCity(station.city.id);
+              }
+            }
+          } else if (origin && !originStationData) {
+            // If we have a station ID but no station data, find it
+            const station = stations.find(s => s.id === origin);
+            if (station) {
+              setOriginStationData(station);
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      // Only clear if params don't have originCityId
+      if (!params.originCityId) {
+        setOriginStations([]);
+        setOrigin(null);
+        setOriginStationData(null);
+      }
+    }
+  }, [originCity, params.originId, params.originCityId, origin]);
+
+  useEffect(() => {
+    if (destCity) {
+      Api.stations(destCity)
+        .then((stations) => {
+          setDestStations(stations);
+          // Set destination station if provided in params
+          if (params.destId) {
+            const stationId = Number(params.destId);
+            const station = stations.find(s => s.id === stationId);
+            if (station) {
+              setDestination(stationId);
+              setDestStationData(station);
+              // Ensure city is set from station
+              if (station.city && station.city.id !== destCity) {
+                setDestCity(station.city.id);
+              }
+            } else {
+              // If station not found, try to use city ID as fallback
+              if (stationId === destCity) {
+                setDestination(null); // Will use city ID in submit
+                setDestStationData(null);
+              }
+            }
+          } else if (destination && !destStationData) {
+            // If we have a station ID but no station data, find it
+            const station = stations.find(s => s.id === destination);
+            if (station) {
+              setDestStationData(station);
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      // Only clear if params don't have destCityId
+      if (!params.destCityId) {
+        setDestStations([]);
+        setDestStationData(null);
+        setDestination(null);
+      }
+    }
+  }, [destCity, params.destId, params.destCityId, destination]);
+
+  const getCityName = (cityId: number | null) => {
+    if (!cityId) return '';
+    return cities.find(c => c.id === cityId)?.name || '';
+  };
+
+  const getStationName = (stationId: number | null, stations: Station[]) => {
+    if (!stationId) return '';
+    return stations.find(s => s.id === stationId)?.name || '';
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      const days = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
+      const months = ['1-р сар', '2-р сар', '3-р сар', '4-р сар', '5-р сар', '6-р сар', 
+                      '7-р сар', '8-р сар', '9-р сар', '10-р сар', '11-р сар', '12-р сар'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${days[d.getDay()]}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const submit = () => {
+    // Backend expects CITY IDs, not station IDs
+    // If station is selected, use its city ID; otherwise use the city ID directly
+    const originCityId = originStationData?.city?.id || originCity;
+    const destCityId = destStationData?.city?.id || destCity;
     
-    </ParallaxScrollView>
+    if (!originCityId || !destCityId || !date) {
+      Alert.alert('Шаардлагатай', 'Хаанаас, хаашаа, огноо сонгоно уу.');
+      return;
+    }
+    if (originCityId === destCityId) {
+      Alert.alert('Алдаа', 'Хаанаас болон хаашаа ижил байж болохгүй.');
+      return;
+    }
+    router.push({ 
+      pathname: '/searchResults', 
+      params: { 
+        origin: String(originCityId), 
+        destination: String(destCityId), 
+        date 
+      } 
+    });
+  };
+
+  return (
+    <ThemedView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <ThemedText style={styles.headerTitle}>Автобусны хайлт</ThemedText>
+        <ThemedText style={styles.headerSubtitle}>Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй</ThemedText>
+        {/* <View style={styles.headerCard}>
+          <ThemedText style={styles.headerCardTitle}>Санал</ThemedText>
+          <ThemedText style={styles.headerCardText}>
+            Явсан газар бүртээ суудлаа урьдчилан захиалах нь аюулгүй, тав тухтай.
+          </ThemedText>
+        </View> */}
+      </View>
+
+      {/* Search Card */}
+      <View style={styles.searchCard}>
+        {/* From */}
+        <Pressable 
+          style={styles.inputField}
+          onPress={() => {
+            // Preserve current selection in URL when navigating
+            const currentParams: any = {};
+            if (origin) currentParams.originId = String(origin);
+            if (originCity) currentParams.originCityId = String(originCity);
+            if (destination) currentParams.destId = String(destination);
+            if (destCity) currentParams.destCityId = String(destCity);
+            router.push({ 
+              pathname: '/locationSelect', 
+              params: { 
+                type: 'origin', 
+                cityId: originCity ? String(originCity) : '',
+                ...currentParams
+              } 
+            });
+          }}
+        >
+          <ThemedText style={styles.inputIcon}>🏢</ThemedText>
+          <View style={styles.inputContent}>
+            <ThemedText style={styles.inputLabel}>Хаанаас</ThemedText>
+            <ThemedText style={styles.inputValue}>
+              {origin ? getStationName(origin, originStations) : getCityName(originCity) || 'Сонгох'}
+            </ThemedText>
+          </View>
+        </Pressable>
+
+        {/* To */}
+        <Pressable 
+          style={styles.inputField}
+          onPress={() => {
+            // Preserve current selection in URL when navigating
+            const currentParams: any = {};
+            if (origin) currentParams.originId = String(origin);
+            if (originCity) currentParams.originCityId = String(originCity);
+            if (destination) currentParams.destId = String(destination);
+            if (destCity) currentParams.destCityId = String(destCity);
+            router.push({ 
+              pathname: '/locationSelect', 
+              params: { 
+                type: 'destination', 
+                cityId: destCity ? String(destCity) : '',
+                ...currentParams
+              } 
+            });
+          }}
+        >
+          <ThemedText style={styles.inputIcon}>📍</ThemedText>
+          <View style={styles.inputContent}>
+            <ThemedText style={styles.inputLabel}>Хаашаа</ThemedText>
+            <ThemedText style={styles.inputValue}>
+              {destination ? getStationName(destination, destStations) : getCityName(destCity) || 'Сонгох'}
+            </ThemedText>
+          </View>
+        </Pressable>
+
+        {/* Date */}
+        <Pressable 
+          style={styles.inputField}
+          onPress={() => {
+            // TODO: Open date picker
+            Alert.alert('Date Picker', 'Date picker will be implemented');
+          }}
+        >
+          <ThemedText style={styles.inputIcon}>📅</ThemedText>
+          <View style={styles.inputContent}>
+            <ThemedText style={styles.inputLabel}>Огноо</ThemedText>
+            <ThemedText style={styles.inputValue}>{formatDate(date)}</ThemedText>
+          </View>
+        </Pressable>
+
+        {/* Search Button */}
+        <Pressable 
+          onPress={submit} 
+          style={[styles.searchButton, (!(origin || originCity) || !(destination || destCity) || !date) && styles.searchButtonDisabled]}
+          disabled={!(origin || originCity) || !(destination || destCity) || !date}
+        >
+          <ThemedText style={styles.searchIcon}>🔍</ThemedText>
+          <ThemedText style={styles.searchButtonText}>Хайх</ThemedText>
+        </Pressable>
+      </View>
+
+      {/* Help Section */}
+      <View style={styles.helpSection}>
+        <ThemedText style={styles.helpTitle}>Танд тусалъя</ThemedText>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.helpCards}>
+          <View style={styles.helpCard}>
+            <View style={styles.helpIcon}>
+              <ThemedText>❓</ThemedText>
+            </View>
+            <ThemedText style={styles.helpQuestion}>
+              Онлайн захиалгын үйлчилгээ нь ямар нэмэлт шимтгэл байгаа эсэх?
+            </ThemedText>
+            <ThemedText style={styles.helpAnswer}>Байхгүй.</ThemedText>
+          </View>
+          <View style={styles.helpCard}>
+            <View style={styles.helpIcon}>
+              <ThemedText>❓</ThemedText>
+            </View>
+            <ThemedText style={styles.helpQuestion}>
+              Захиалгаа хэрхэн цуцлах вэ?
+            </ThemedText>
+            <ThemedText style={styles.helpAnswer}>Захиалгын түүхээс цуцлана уу.</ThemedText>
+          </View>
+        </ScrollView>
+      </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: BrandColors.primary,
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    marginTop: 8,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  headerCard: {
+    marginTop: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  headerCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  headerCardText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  searchCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 20,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inputField: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  buttonLike: {
-    backgroundColor: '#e0f2fe',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
     borderWidth: 1,
-    borderColor: '#38bdf8',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+    borderColor: '#e5e7eb',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  inputIcon: {
+    fontSize: 20,
+  },
+  inputContent: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  inputValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BrandColors.onPrimary,
+    borderRadius: 12,
+    padding: 16,
+    gap: 8,
+    marginTop: 8,
+    borderWidth: 2,
+    borderColor: BrandColors.primary,
+  },
+  searchButtonDisabled: {
+    backgroundColor: BrandColors.buttonDisabled,
+    borderColor: BrandColors.buttonDisabled,
+  },
+  searchIcon: {
+    fontSize: 20,
+    color: BrandColors.primary,
+  },
+  searchButtonText: {
+    color: BrandColors.primary,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  helpSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  helpTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
+  },
+  helpCards: {
+    gap: 12,
+  },
+  helpCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    width: 300,
+    marginRight: 12,
+  },
+  helpIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  helpQuestion: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  helpAnswer: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
   },
 });

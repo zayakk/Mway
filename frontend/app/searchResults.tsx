@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Api, Trip } from '@/lib/api';
+import { BrandColors } from '@/constants/theme';
 
 export default function SearchResults() {
   const { origin, destination, date } = useLocalSearchParams<{ origin: string; destination: string; date: string }>();
@@ -11,15 +12,16 @@ export default function SearchResults() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(date || new Date().toISOString().slice(0, 10));
+  const initialDate = date || new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [originName, setOriginName] = useState<string>('');
   const [destName, setDestName] = useState<string>('');
 
   // Generate next 7 days
   const getDateButtons = () => {
     const dates = [];
-    const startDate = new Date(selectedDate);
-    for (let i = 0; i < 7; i++) {
+    const startDate = new Date(initialDate);
+    for (let i = 0; i < 14; i++) {
       const d = new Date(startDate);
       d.setDate(startDate.getDate() + i);
       dates.push(d.toISOString().slice(0, 10));
@@ -127,99 +129,105 @@ export default function SearchResults() {
         </Pressable>
         <View style={styles.headerContent}>
           <ThemedText style={styles.routeText}>
-            {originName || 'Origin'} - {destName || 'Destination'}
+            {originName || 'Origin'} → {destName || 'Destination'}
           </ThemedText>
+          <ThemedText style={styles.headerSubtitle}>Огноо сонгон аяллаа хараарай</ThemedText>
           <ThemedText style={styles.dateRange}>
-            {dateButtons[0]?.replace(/-/g, '.')} - {dateButtons[6]?.replace(/-/g, '.')}
+            {dateButtons[0]?.replace(/-/g, '.')} - {dateButtons[dateButtons.length - 1]?.replace(/-/g, '.')}
           </ThemedText>
         </View>
       </View>
 
-      {/* Date Selector */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.dateSelector}
-        contentContainerStyle={styles.dateSelectorContent}
-      >
-        {dateButtons.map((dateStr) => {
-          const { day, date } = formatDateButton(dateStr);
-          const isSelected = dateStr === selectedDate;
-          return (
-            <Pressable
-              key={dateStr}
-              style={[styles.dateButton, isSelected && styles.dateButtonSelected]}
-              onPress={() => setSelectedDate(dateStr)}
-            >
-              <ThemedText style={[styles.dateButtonDay, isSelected && styles.dateButtonDaySelected]}>
-                {day}
-              </ThemedText>
-              <ThemedText style={[styles.dateButtonDate, isSelected && styles.dateButtonDateSelected]}>
-                {date}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {/* Results */}
-      {loading ? (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#0ea5e9" />
-        </View>
-      ) : error ? (
-        <View style={styles.centerContainer}>
-          <ThemedText style={styles.errorText}>⚠️ {error}</ThemedText>
-        </View>
-      ) : (
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {trips.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <ThemedText style={styles.emptyTitle}>Уучлаарай</ThemedText>
-              <ThemedText style={styles.emptyText}>
-                Энэ өдөр зорчих автобус алга байна
-              </ThemedText>
-            </View>
-          ) : (
-            trips.map((trip) => {
-              const duration = calculateDuration(trip.depart_at, trip.arrive_at);
+      <View style={styles.contentWrapper}>
+        {/* Date Selector */}
+        <View style={styles.dateSelectorCard}>
+          <ThemedText style={styles.dateSelectorLabel}>Аяллын өдөр</ThemedText>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.dateSelector}
+            contentContainerStyle={styles.dateSelectorContent}
+          >
+            {dateButtons.map((dateStr) => {
+              const { day, date } = formatDateButton(dateStr);
+              const isSelected = dateStr === selectedDate;
               return (
                 <Pressable
-                  key={trip.id}
-                  style={styles.tripCard}
-                  onPress={() => router.push({ pathname: '/seats', params: { tripId: String(trip.id) } })}
+                  key={dateStr}
+                  style={[styles.dateButton, isSelected && styles.dateButtonSelected]}
+                  onPress={() => setSelectedDate(dateStr)}
                 >
-                  <View style={styles.tripCardLeft}>
-                    <ThemedText style={styles.tripTime}>{formatTime(trip.depart_at)}</ThemedText>
-                    <ThemedText style={styles.tripDate}>{formatDateOnly(trip.depart_at)}</ThemedText>
-                  </View>
-
-                  <View style={styles.tripCardCenter}>
-                    <ThemedText style={styles.tripBusIcon}>🚌</ThemedText>
-                    <ThemedText style={styles.tripDuration}>
-                      {duration.hours} Цаг {duration.minutes} Минут
-                    </ThemedText>
-                    <ThemedText style={styles.tripDistance}>
-                      {trip.route.distance_km || 0} км
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.tripCardRight}>
-                    <ThemedText style={styles.tripTime}>{formatTime(trip.arrive_at)}</ThemedText>
-                    <ThemedText style={styles.tripDate}>{formatDateOnly(trip.arrive_at)}</ThemedText>
-                    <ThemedText style={styles.tripPrice}>{trip.base_price} MNT</ThemedText>
-                    {trip.bus?.insurance_fee && (
-                      <ThemedText style={styles.tripInsurance}>
-                        Даатгал: {parseFloat(trip.bus.insurance_fee).toLocaleString()} MNT
-                      </ThemedText>
-                    )}
-                  </View>
+                  <ThemedText style={[styles.dateButtonDay, isSelected && styles.dateButtonDaySelected]}>
+                    {day}
+                  </ThemedText>
+                  <ThemedText style={[styles.dateButtonDate, isSelected && styles.dateButtonDateSelected]}>
+                    {date}
+                  </ThemedText>
                 </Pressable>
               );
-            })
-          )}
-        </ScrollView>
-      )}
+            })}
+          </ScrollView>
+        </View>
+
+        {/* Results */}
+        {loading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={BrandColors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <ThemedText style={styles.errorText}>⚠️ {error}</ThemedText>
+          </View>
+        ) : (
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+            {trips.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <ThemedText style={styles.emptyTitle}>Уучлаарай</ThemedText>
+                <ThemedText style={styles.emptyText}>
+                  Энэ өдөр зорчих автобус алга байна
+                </ThemedText>
+              </View>
+            ) : (
+              trips.map((trip) => {
+                const duration = calculateDuration(trip.depart_at, trip.arrive_at);
+                return (
+                  <Pressable
+                    key={trip.id}
+                    style={styles.tripCard}
+                    onPress={() => router.push({ pathname: '/seats', params: { tripId: String(trip.id) } })}
+                  >
+                    <View style={styles.tripCardLeft}>
+                      <ThemedText style={styles.tripTime}>{formatTime(trip.depart_at)}</ThemedText>
+                      <ThemedText style={styles.tripDate}>{formatDateOnly(trip.depart_at)}</ThemedText>
+                    </View>
+
+                    <View style={styles.tripCardCenter}>
+                      <ThemedText style={styles.tripBusIcon}>🚌</ThemedText>
+                      <ThemedText style={styles.tripDuration}>
+                        {duration.hours} Цаг {duration.minutes} Минут
+                      </ThemedText>
+                      <ThemedText style={styles.tripDistance}>
+                        {trip.route.distance_km || 0} км
+                      </ThemedText>
+                    </View>
+
+                    <View style={styles.tripCardRight}>
+                      <ThemedText style={styles.tripTime}>{formatTime(trip.arrive_at)}</ThemedText>
+                      <ThemedText style={styles.tripDate}>{formatDateOnly(trip.arrive_at)}</ThemedText>
+                      <ThemedText style={styles.tripPrice}>{trip.base_price} MNT</ThemedText>
+                      {trip.bus?.insurance_fee && (
+                        <ThemedText style={styles.tripInsurance}>
+                          Даатгал: {parseFloat(trip.bus.insurance_fee).toLocaleString()} MNT
+                        </ThemedText>
+                      )}
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+          </ScrollView>
+        )}
+      </View>
     </ThemedView>
   );
 }
@@ -227,17 +235,15 @@ export default function SearchResults() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: BrandColors.primary,
   },
   header: {
     paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   backButton: {
     width: 32,
@@ -254,36 +260,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   routeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#fff',
   },
   dateRange: {
-    fontSize: 14,
-    color: '#6b7280',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
     marginTop: 4,
   },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 6,
+  },
+  contentWrapper: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 24,
+  },
+  dateSelectorCard: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  dateSelectorLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 10,
+  },
   dateSelector: {
-    maxHeight: 80,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    maxHeight: 90,
   },
   dateSelectorContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    gap: 10,
   },
   dateButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
     minWidth: 80,
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 10,
   },
   dateButtonSelected: {
-    backgroundColor: '#1f2937',
+    backgroundColor: BrandColors.primary,
   },
   dateButtonDay: {
     fontSize: 12,
@@ -296,16 +322,19 @@ const styles = StyleSheet.create({
   dateButtonDate: {
     fontSize: 12,
     color: '#111827',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   dateButtonDateSelected: {
     color: '#fff',
   },
   scrollView: {
     flex: 1,
+    marginTop: 8,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 32,
+    gap: 12,
   },
   centerContainer: {
     flex: 1,
@@ -336,12 +365,16 @@ const styles = StyleSheet.create({
   },
   tripCard: {
     flexDirection: 'row',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   tripCardLeft: {
     alignItems: 'flex-start',

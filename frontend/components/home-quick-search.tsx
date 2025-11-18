@@ -50,7 +50,12 @@ export function HomeQuickSearch() {
       <Pills data={destStations} value={destination} onChange={setDestination} />
 
       <ThemedText style={styles.label}>{t('home.date') || 'Date (YYYY-MM-DD)'}</ThemedText>
-      <TextInput value={date} onChangeText={setDate} style={styles.input} />
+      <TextInput
+        nativeID="quicksearch-date"
+        value={date}
+        onChangeText={setDate}
+        style={styles.input}
+      />
 
       <Pressable onPress={submit} style={styles.cta}>
         <ThemedText type="defaultSemiBold">{t('home.search') || 'Search'}</ThemedText>

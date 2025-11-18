@@ -12,18 +12,20 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState<string | null>(null);
 
   const onSubmit = async () => {
-    if (!email || !password) {
-      Alert.alert('Required', 'Email and password are required.');
-      return;
-    }
     try {
+      if (!email || !password) {
+        setError('Имэйл болон нууц үгээ бүрэн оруулна уу.');
+        return;
+      }
+      setError(null);
       setLoading(true);
-      await login(email, password);
-      router.replace('/search');
+      await login(email, password); 
+      router.replace('/');
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Login failed');
+      setError(e?.message ?? 'Нэвтрэхэд алдаа гарлаа.');
     } finally {
       setLoading(false);
     }
@@ -45,11 +47,19 @@ export default function LoginScreen() {
         <ThemedText type="title" style={styles.welcomeTitle}>Welcome Back</ThemedText>
         <ThemedText style={styles.welcomeSubtitle}>Sign in to continue booking your trips</ThemedText>
 
+        {error && (
+          <View style={styles.errorBox}>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          </View>
+        )}
+
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.label}>Email Address</ThemedText>
             <View style={styles.inputWrapper}>
               <TextInput
+                nativeID="login-email"
+                autoComplete="email"
                 placeholder="Enter your email"
                 placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
@@ -65,6 +75,8 @@ export default function LoginScreen() {
             <ThemedText style={styles.label}>Password</ThemedText>
             <View style={styles.inputWrapper}>
               <TextInput
+                nativeID="login-password"
+                autoComplete="current-password"
                 placeholder="Enter your password"
                 placeholderTextColor="#94a3b8"
                 secureTextEntry
@@ -151,6 +163,19 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     paddingTop: 32,
+  },
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#b91c1c',
   },
   welcomeTitle: {
     fontSize: 28,

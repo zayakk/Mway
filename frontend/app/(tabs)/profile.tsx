@@ -1,18 +1,41 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
+import { Alert, Pressable, StyleSheet, ScrollView, View, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth';
+import { BrandColors } from '@/constants/theme';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
+  const performLogout = async () => {
+    try {
+      setLoading(true);
+      await logout();
+      setTimeout(() => {
+        setLoading(false);
+        router.replace('/login');
+      }, 200);
+    } catch (e: any) {
+      setLoading(false);
+      Alert.alert('Алдаа', e?.message ?? 'Гарах амжилтгүй боллоо');
+    }
+  };
+
   const handleLogout = () => {
     if (!user) {
       Alert.alert('Алдаа', 'Хэрэглэгч нэвтрээгүй байна');
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Та системээс гарахдаа итгэлтэй байна уу?');
+      if (confirmed) {
+        void performLogout();
+      }
       return;
     }
 
@@ -27,24 +50,17 @@ export default function ProfileScreen() {
         {
           text: 'Гарах',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await logout();
-              // Small delay to ensure state updates
-              setTimeout(() => {
-                setLoading(false);
-                router.replace('/login');
-              }, 200);
-            } catch (e: any) {
-              setLoading(false);
-              Alert.alert('Алдаа', e?.message ?? 'Гарах амжилтгүй боллоо');
-            }
+          onPress: () => {
+            void performLogout();
           },
         },
       ],
       { cancelable: true }
     );
+  };
+
+  const handleHistory = () => {
+    router.push('/history');
   };
 
   const handleNotifications = () => {
@@ -75,114 +91,163 @@ export default function ProfileScreen() {
     <ThemedView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Профайл</ThemedText>
+        <ThemedText style={styles.headerGreeting}>Сайн байна уу, {user?.name || 'хэрэглэгч'} 👋</ThemedText>
+        <ThemedText style={styles.headerTitle}>Профайл & Тохиргоо</ThemedText>
+        <ThemedText style={styles.headerSubtitle}>
+          Хувийн мэдээлэл, дуртай тохиргоо, тусламж—all in one.
+        </ThemedText>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Profile Card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <ThemedText style={styles.avatarText}>
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </ThemedText>
+        <View style={styles.contentWrapper}>
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <ThemedText style={styles.avatarText}>
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </ThemedText>
+              </View>
+            </View>
+            
+            <View style={styles.profileInfo}>
+              <ThemedText style={styles.profileName}>{user?.name || 'Хэрэглэгч'}</ThemedText>
+              <ThemedText style={styles.profileEmail}>{user?.email || '—'}</ThemedText>
             </View>
           </View>
-          
-          <View style={styles.profileInfo}>
-            <ThemedText style={styles.profileName}>{user?.name || 'Хэрэглэгч'}</ThemedText>
-            <ThemedText style={styles.profileEmail}>{user?.email || '—'}</ThemedText>
-          </View>
-        </View>
 
-        {/* Account Info Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <ThemedText style={styles.cardTitle}>Хэрэглэгчийн мэдээлэл</ThemedText>
+          {/* Quick actions */}
+          <View style={styles.quickActions}>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
+              onPress={handleHistory}
+            >
+              <ThemedText style={styles.quickActionIcon}>🧾</ThemedText>
+              <View>
+                <ThemedText style={styles.quickActionLabel}>Захиалгын түүх</ThemedText>
+                <ThemedText style={styles.quickActionHint}>Хамгийн сүүлд хийсэн аяллууд</ThemedText>
+              </View>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.quickAction, pressed && styles.quickActionPressed]}
+              onPress={handleNotifications}
+            >
+              <ThemedText style={styles.quickActionIcon}>🔔</ThemedText>
+              <View>
+                <ThemedText style={styles.quickActionLabel}>Мэдэгдэл</ThemedText>
+                <ThemedText style={styles.quickActionHint}>Шинэ мэдээллүүдээ шалгах</ThemedText>
+              </View>
+            </Pressable>
           </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Нэр:</ThemedText>
-            <ThemedText style={styles.infoValue}>{user?.name || '—'}</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Имэйл:</ThemedText>
-            <ThemedText style={styles.infoValue}>{user?.email || '—'}</ThemedText>
-          </View>
-          <View style={styles.infoRow}>
-            <ThemedText style={styles.infoLabel}>Хэрэглэгчийн дугаар:</ThemedText>
-            <ThemedText style={styles.infoValue}>{user?.id || '—'}</ThemedText>
-          </View>
-        </View>
 
-        {/* Settings Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <ThemedText style={styles.cardTitle}>Тохиргоо</ThemedText>
+          {/* Account Info Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <ThemedText style={styles.cardTitle}>Хэрэглэгчийн мэдээлэл</ThemedText>
+            </View>
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Нэр:</ThemedText>
+              <ThemedText style={styles.infoValue}>{user?.name || '—'}</ThemedText>
+            </View>
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Имэйл:</ThemedText>
+              <ThemedText style={styles.infoValue}>{user?.email || '—'}</ThemedText>
+            </View>
+            <View style={styles.infoRow}>
+              <ThemedText style={styles.infoLabel}>Хэрэглэгчийн дугаар:</ThemedText>
+              <ThemedText style={styles.infoValue}>{user?.id || '—'}</ThemedText>
+            </View>
           </View>
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handleNotifications}
-          >
-            <ThemedText style={styles.settingLabel}>🔔 Мэдэгдэл</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
-          <View style={styles.divider} />
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handleLanguage}
-          >
-            <ThemedText style={styles.settingLabel}>🌐 Хэл</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
-          <View style={styles.divider} />
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handlePrivacy}
-          >
-            <ThemedText style={styles.settingLabel}>🔒 Нууцлал</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
-        </View>
 
-        {/* Help Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <ThemedText style={styles.cardTitle}>Тусламж</ThemedText>
+          {/* Settings Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <ThemedText style={styles.cardTitle}>Тохиргоо</ThemedText>
+            </View>
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handleNotifications}
+            >
+              <ThemedText style={styles.settingLabel}>🔔 Мэдэгдэл</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handleLanguage}
+            >
+              <ThemedText style={styles.settingLabel}>🌐 Хэл</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handlePrivacy}
+            >
+              <ThemedText style={styles.settingLabel}>🔒 Нууцлал</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
           </View>
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handleFAQs}
-          >
-            <ThemedText style={styles.settingLabel}>❓ Түгээмэл асуултууд</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
-          <View style={styles.divider} />
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handleContact}
-          >
-            <ThemedText style={styles.settingLabel}>📞 Холбоо барих</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
-          <View style={styles.divider} />
-          <Pressable 
-            style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
-            onPress={handleAbout}
-          >
-            <ThemedText style={styles.settingLabel}>ℹ️ Бидний тухай</ThemedText>
-            <ThemedText style={styles.settingArrow}>›</ThemedText>
-          </Pressable>
+
+          {/* Help Card */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <ThemedText style={styles.cardTitle}>Тусламж</ThemedText>
+            </View>
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handleFAQs}
+            >
+              <ThemedText style={styles.settingLabel}>❓ Түгээмэл асуултууд</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handleContact}
+            >
+              <ThemedText style={styles.settingLabel}>📞 Холбоо барих</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
+            <View style={styles.divider} />
+            <Pressable 
+              style={({ pressed }) => [styles.settingItem, pressed && styles.settingItemPressed]}
+              onPress={handleAbout}
+            >
+              <ThemedText style={styles.settingLabel}>ℹ️ Бидний тухай</ThemedText>
+              <ThemedText style={styles.settingArrow}>›</ThemedText>
+            </Pressable>
+          </View>
+
+          {/* Support Card */}
+          <View style={styles.supportCard}>
+            <View style={{ flex: 1 }}>
+              <ThemedText style={styles.supportTitle}>Системээс гарах уу?</ThemedText>
+              <ThemedText style={styles.supportText}>
+                Дараагийн нэвтрэх үед таны мэдээллийг дахин баталгаажуулах болно.
+              </ThemedText>
+            </View>
+            <TouchableOpacity
+              style={[styles.supportButton, loading && styles.logoutButtonDisabled]}
+              onPress={handleLogout}
+              disabled={loading}
+            >
+              <ThemedText style={styles.supportButtonText}>
+                {loading ? 'Гараж байна...' : 'Гарах'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       {/* Logout Button */}
-      <View style={styles.footer}>
+      {/* <View style={styles.footer}>
         <TouchableOpacity
           onPress={handleLogout}
-          style={[
-            styles.logoutButton,
-            loading && styles.logoutButtonDisabled
-          ]}
+            style={[
+              styles.logoutButton,
+              loading && styles.logoutButtonDisabled
+            ]}
           disabled={loading}
           activeOpacity={0.8}
         >
@@ -190,7 +255,7 @@ export default function ProfileScreen() {
             {loading ? 'Гараж байна...' : 'Гарах'}
           </ThemedText>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </ThemedView>
   );
 }
@@ -198,27 +263,77 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: BrandColors.primary,
   },
   header: {
     paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    alignItems: 'center',
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerGreeting: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 6,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  headerSubtitle: {
+    marginTop: 8,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
   },
   scrollView: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
-    padding: 16,
+    paddingBottom: 160,
+  },
+  contentWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
     gap: 16,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  quickAction: {
+    flex: 1,
+    minWidth: 150,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  quickActionPressed: {
+    opacity: 0.7,
+  },
+  quickActionIcon: {
+    fontSize: 24,
+  },
+  quickActionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0f172a',
+  },
+  quickActionHint: {
+    fontSize: 13,
+    color: '#64748b',
   },
   profileCard: {
     backgroundColor: '#fff',
@@ -326,13 +441,56 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#e5e7eb',
   },
+  supportCard: {
+    flexDirection: 'row',
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 16,
+    alignItems: 'center',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  supportTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  supportText: {
+    fontSize: 14,
+    color: '#0f172a',
+    opacity: 0.8,
+  },
+  supportButton: {
+    backgroundColor: BrandColors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+  },
+  supportButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
   footer: {
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    paddingHorizontal: 24,
     backgroundColor: '#fff',
     zIndex: 10,
     elevation: 5,
+    marginHorizontal: 16,
+    marginBottom: 32,
+    borderRadius: 20,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
   },
   logoutButton: {
     backgroundColor: '#ef4444',
