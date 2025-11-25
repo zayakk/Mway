@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   helpQuestion: {
     fontSize: 15,
     color: '#0f172a',
-    fontWeight: '600',
+    fontWeight: '600', 
     lineHeight: 22,
   },
   helpAnswer: {

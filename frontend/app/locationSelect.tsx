@@ -100,7 +100,7 @@ export default function LocationSelectScreen() {
       }
 
       // FIX: Та энд '/' биш '/search' руу буцах ёстой байсан
-      router.replace({ pathname: '/search', params });
+      router.replace({ pathname: '/', params });
     }
   };
 
