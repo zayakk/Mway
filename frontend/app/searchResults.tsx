@@ -43,6 +43,8 @@ export default function SearchResults() {
       try {
         // Fetch trips
         const res = await Api.search(Number(origin), Number(destination), selectedDate);
+        console.log("res: ", res);
+        console.log("param Data: ", origin, destination, date );
         const results = res.results || [];
         setTrips(results);
 

@@ -46,23 +46,28 @@ export default function SeatsScreen() {
   const [layout, setLayout] = useState<SeatCell[][]>(buildDemoLayout());
   const [trip, setTrip] = useState<Trip | null>(null);
   const maxSelect = 4;
+  const [clientToken] = useState(() => `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`);
+
+  const tripId = params?.tripId ? Number(params.tripId) : null;
 
   useEffect(() => {
-    const id = params?.tripId ? Number(params.tripId) : null;
-    if (!id) return;
-    
-    Api.trip(id)
+    if (!tripId) return;
+
+    Api.trip(tripId)
       .then(setTrip)
       .catch(() => {});
 
-    Api.tripSeats(id)
-      .then((res) => {
+    Api.tripSeats(tripId)
+      .then((res: any) => {
         const serverLayout = (res.layout || []) as any[];
+        const booked = new Set<string>((res.booked || []).map(String));
+        const locked = new Set<string>((res.locked || []).map(String));
         const mapped: SeatCell[][] = serverLayout.map((row: any[]) =>
           row.map((cell: any) => {
             if (!cell?.code) return { code: null };
-            const status = cell.status === 'booked' || cell.status === 'locked' ? 'reserved' : 'available';
-            return { code: cell.code, status };
+            const code = String(cell.code);
+            const status = booked.has(code) || locked.has(code) ? 'reserved' : 'available';
+            return { code, status };
           })
         );
         if (mapped.length > 0) {
@@ -70,25 +75,52 @@ export default function SeatsScreen() {
         }
       })
       .catch(() => {});
-  }, [params?.tripId]);
+  }, [tripId]);
 
-  const toggle = (code: string) => {
+  const toggle = async (code: string) => {
+    if (!tripId) return;
     const flat = layout.flat();
     const seat = flat.find((c) => c.code === code);
     if (!seat || seat.status === 'reserved') return;
 
     const next = new Set(selected);
+
+    // Deselect: release the seat lock
     if (next.has(code)) {
-      next.delete(code);
-    } else {
-      if (next.size >= maxSelect) {
-        Alert.alert('Хязгаар', `Хамгийн ихдээ ${maxSelect} суудал сонгох боломжтой`);
-        return;
+      try {
+        await Api.releaseHolds({ trip: tripId, seats: [code], token: clientToken });
+      } catch {
+        // ignore release errors, let user continue
       }
-      next.add(code);
+      next.delete(code);
+      setSelected(next);
+      return;
     }
-    setSelected(next);
+
+    // Select: respect max limit, then attempt to hold via API
+    if (next.size >= maxSelect) {
+      Alert.alert('Хязгаар', `Хамгийн ихдээ ${maxSelect} суудал сонгох боломжтой`);
+      return;
+    }
+
+    try {
+      await Api.holds({ trip: tripId, seats: [code], token: clientToken });
+      next.add(code);
+      setSelected(next);
+    } catch (e: any) {
+      Alert.alert('Алдаа', e?.message || 'Суудлыг түгжихэд алдаа гарлаа');
+    }
   };
+
+  // On unmount, release all selected seats for this token
+  useEffect(() => {
+    return () => {
+      if (!tripId) return;
+      const seats = Array.from(selected);
+      if (!seats.length) return;
+      Api.releaseHolds({ trip: tripId, seats, token: clientToken }).catch(() => {});
+    };
+  }, [tripId, selected, clientToken]);
 
   const onProceed = () => {
     if (!selected.size) {
@@ -245,8 +277,12 @@ export default function SeatsScreen() {
             </ThemedText>
           </View>
           <View style={styles.legendItem}>
+            <View style={[styles.legendCircle, styles.legendSelected]} />
+            <ThemedText style={styles.legendText}>Таны сонголт</ThemedText>
+          </View>
+          <View style={styles.legendItem}>
             <View style={[styles.legendCircle, styles.legendUnavailable]} />
-            <ThemedText style={styles.legendText}>Боломжгүй</ThemedText>
+            <ThemedText style={styles.legendText}>Захиалсан / түгжсэн</ThemedText>
           </View>
         </View>
 
@@ -394,6 +430,10 @@ const styles = StyleSheet.create({
   legendAvailable: {
     backgroundColor: '#fff',
     borderColor: '#cbd5e1',
+  },
+  legendSelected: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
   },
   legendUnavailable: {
     backgroundColor: '#e5e7eb',

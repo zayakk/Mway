@@ -5,6 +5,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth';
 import { BrandColors } from '@/constants/theme';
+import { Screen, ScreenHeader } from '@/components/ui/screen';
+
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -90,18 +92,29 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <ThemedText style={styles.headerGreeting}>Сайн байна уу, {user?.name || 'хэрэглэгч'} 👋</ThemedText>
-        <ThemedText style={styles.headerTitle}>Профайл & Тохиргоо</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>
-          Хувийн мэдээлэл, дуртай тохиргоо, тусламж—all in one.
-        </ThemedText>
-      </View>
+      {/* <View style={styles.header}>
+        <ScreenHeader
+        eyebrow="Trip planner"
+        title="Автобусны хайлт"
+        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
+      />
+      </View> */}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* <ScreenHeader
+        eyebrow="Trip planner"
+        title="Автобусны хайлт"
+        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
+      /> */}
         <View style={styles.contentWrapper}>
           {/* Profile Card */}
+                  <ScreenHeader
+        eyebrow="Trip planner"
+        title="Автобусны хайлт"
+        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
+      />
           <View style={styles.profileCard}>
+            
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 <ThemedText style={styles.avatarText}>

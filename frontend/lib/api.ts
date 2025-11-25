@@ -69,6 +69,30 @@ export type Trip = {
 export type UserSummary = { id: number; name: string; email: string };
 export type AuthResponse = { token: string; user: UserSummary };
 
+export type HoldSeatsPayload = {
+  trip: number;
+  seats?: string[];
+  auto_assign?: number;
+  token: string;
+  ttl_seconds?: number;
+};
+
+export type HoldSeatsResponse = {
+  trip: number;
+  locked: string[];
+  expires_at: string;
+};
+
+export type ReleaseSeatsPayload = {
+  trip: number;
+  seats: string[];
+  token: string;
+};
+
+export type ReleaseSeatsResponse = {
+  released: string[];
+};
+
 export const Api = {
   cities: () => get<City[]>(`/cities/`),
   stations: (city?: number) => get<Station[]>(city ? `/stations/?city=${city}` : `/stations/`),
@@ -78,6 +102,8 @@ export const Api = {
   trip: (tripId: number) => get<Trip>(`/trips/${tripId}/`),
   book: (payload: { trip: number; seats: string[]; passenger: { name: string; phone: string } }) =>
     post<Record<string, any>>(`/book/`, payload),
+  holds: (payload: HoldSeatsPayload) => post<HoldSeatsResponse>('/holds/', payload),
+  releaseHolds: (payload: ReleaseSeatsPayload) => post<ReleaseSeatsResponse>('/holds/release/', payload),
   auth: {
     register: (payload: { name: string; email: string; password: string }) =>
       post<AuthResponse>('/auth/register/', payload),
