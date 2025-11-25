@@ -4,6 +4,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from django.utils.dateparse import parse_date
+from django.db import transaction
 from django.db.models import Q
 from .models import Trip, Route, City, Seat, Bus, BookingSeat, SeatLock
 from .serializers import TripSerializer, CitySerializer, TripSearchSerializer, TripDetailSerializer
@@ -13,6 +14,26 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+
+
+def _generate_username_from_email(email: str) -> str:
+    base = (email.split("@")[0] or "user").replace("+", "").replace(".", "")
+    candidate = base or "user"
+    suffix = 1
+    while User.objects.filter(username=candidate).exists():
+        candidate = f"{base}{suffix}"
+        suffix += 1
+    return candidate
+
+
+def serialize_user(user: User) -> dict:
+    profile_name = getattr(getattr(user, "profile", None), "full_name", "") or user.first_name or user.username
+    return {
+        "id": user.id,
+        "name": profile_name,
+        "email": user.email,
+    }
+from accounts.models import Profile
 
 @api_view(["GET"])
 def hello(request):
@@ -252,35 +273,46 @@ def release_seats(request):
 @api_view(["POST"])
 def auth_register(request):
     data = request.data or {}
-    username = (data.get("username") or "").strip()
+    name = (data.get("name") or data.get("full_name") or "").strip()
+    email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
-    email = (data.get("email") or "").strip()
-    if not username or not password:
-        return Response({"detail": "username and password required"}, status=400)
-    if User.objects.filter(username=username).exists():
-        return Response({"detail": "username already taken"}, status=409)
-    user = User.objects.create_user(username=username, email=email, password=password)
+    if not name or not email or not password:
+        return Response({"detail": "Нэр, имэйл, нууц үг шаардлагатай"}, status=400)
+    if User.objects.filter(email__iexact=email).exists():
+        return Response({"detail": "Энэ имэйлээр аль хэдийн бүртгэлтэй байна"}, status=409)
+    username = _generate_username_from_email(email)
+    with transaction.atomic():
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=name,
+        )
+        Profile.objects.create(user=user, full_name=name)
     token, _ = Token.objects.get_or_create(user=user)
-    return Response({"token": token.key, "user": {"id": user.id, "username": user.username, "email": user.email}})
+    return Response({"token": token.key, "user": serialize_user(user)}, status=201)
 
 @api_view(["POST"])
 def auth_login(request):
     data = request.data or {}
-    username = (data.get("username") or "").strip()
+    identifier = (data.get("email") or data.get("username") or "").strip()
     password = data.get("password") or ""
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return Response({"detail": "invalid credentials"}, status=401)
-    if not user.check_password(password):
-        return Response({"detail": "invalid credentials"}, status=401)
+    if not identifier or not password:
+        return Response({"detail": "Имэйл/нэр болон нууц үг шаардлагатай"}, status=400)
+    user = (
+        User.objects.filter(Q(email__iexact=identifier) | Q(username__iexact=identifier))
+        .select_related("profile")
+        .first()
+    )
+    if not user or not user.check_password(password):
+        return Response({"detail": "Имэйл эсвэл нууц үг буруу байна"}, status=401)
     token, _ = Token.objects.get_or_create(user=user)
-    return Response({"token": token.key, "user": {"id": user.id, "username": user.username, "email": user.email}})
+    return Response({"token": token.key, "user": serialize_user(user)})
 
 @api_view(["GET"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def auth_me(request):
     user = request.user
-    return Response({"id": user.id, "username": user.username, "email": user.email})
+    return Response(serialize_user(user))
 

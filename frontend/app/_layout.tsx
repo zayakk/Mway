@@ -86,7 +86,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       if (!user && !inAuth) {
         router.replace('/login');
       } else if (user && inAuth) {
-        router.replace('/');
+        router.replace('/(tabs)');
       }
     }, 100);
 

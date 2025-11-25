@@ -151,7 +151,6 @@ export default function Checkout() {
             <ThemedText style={styles.inputLabel}>Нэр</ThemedText>
             <View style={styles.inputWrapper}>
               <TextInput
-                nativeID="checkout-name"
                 style={styles.input}
                 placeholder="Зорчигчийн нэр оруулна уу"
                 placeholderTextColor="#94a3b8"
@@ -164,7 +163,6 @@ export default function Checkout() {
             <ThemedText style={styles.inputLabel}>Утасны дугаар</ThemedText>
             <View style={styles.inputWrapper}>
               <TextInput
-                nativeID="checkout-phone"
                 style={styles.input}
                 placeholder="Утасны дугаар оруулна уу"
                 placeholderTextColor="#94a3b8"

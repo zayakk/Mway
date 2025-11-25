@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { Alert, StyleSheet, View, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
+
 import { ThemedText } from '@/components/themed-text';
 import { Api, City, Station } from '@/lib/api';
 import { BrandColors } from '@/constants/theme';
+import { Screen, ScreenHeader } from '@/components/ui/screen';
+import { Section } from '@/components/ui/section';
+import { FieldCard } from '@/components/ui/field-card';
+import { PrimaryButton } from '@/components/ui/primary-button';
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -176,274 +180,168 @@ export default function SearchScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Автобусны хайлт</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй</ThemedText>
-        {/* <View style={styles.headerCard}>
-          <ThemedText style={styles.headerCardTitle}>Санал</ThemedText>
-          <ThemedText style={styles.headerCardText}>
-            Явсан газар бүртээ суудлаа урьдчилан захиалах нь аюулгүй, тав тухтай.
-          </ThemedText>
-        </View> */}
+    <Screen scrollable contentContainerStyle={styles.screenContent}>
+      <ScreenHeader
+        eyebrow="Trip planner"
+        title="Автобусны хайлт"
+        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
+      />
+
+      <View style={styles.card}>
+        <Section title="Аяллын мэдээлэл" subtitle="Чиглэл, суудал, огноогоо сонгоод хайлтыг эхлүүлээрэй.">
+          <FieldCard
+            label="Хаанаас"
+            value={origin ? getStationName(origin, originStations) : getCityName(originCity)}
+            placeholder="Гарах хот/буудал"
+            icon={<IconBadge icon="🏢" />}
+            onPress={() => {
+              const currentParams: any = {};
+              if (origin) currentParams.originId = String(origin);
+              if (originCity) currentParams.originCityId = String(originCity);
+              if (destination) currentParams.destId = String(destination);
+              if (destCity) currentParams.destCityId = String(destCity);
+              router.push({
+                pathname: '/locationSelect',
+                params: {
+                  type: 'origin',
+                  cityId: originCity ? String(originCity) : '',
+                  ...currentParams,
+                },
+              });
+            }}
+            accessibilityLabel="Хаанаас сонгох"
+          />
+
+          <FieldCard
+            label="Хаашаа"
+            value={destination ? getStationName(destination, destStations) : getCityName(destCity)}
+            placeholder="Очих хот/буудал"
+            icon={<IconBadge icon="📍" />}
+            onPress={() => {
+              const currentParams: any = {};
+              if (origin) currentParams.originId = String(origin);
+              if (originCity) currentParams.originCityId = String(originCity);
+              if (destination) currentParams.destId = String(destination);
+              if (destCity) currentParams.destCityId = String(destCity);
+              router.push({
+                pathname: '/locationSelect',
+                params: {
+                  type: 'destination',
+                  cityId: destCity ? String(destCity) : '',
+                  ...currentParams,
+                },
+              });
+            }}
+            accessibilityLabel="Хаашаа сонгох"
+          />
+          
+
+          <FieldCard
+            label="Огноо"
+            value={formatDate(date)}
+            placeholder="Огноо сонгох"
+            icon={<IconBadge icon="📅" />}
+            onPress={() => Alert.alert('Огноо', 'Огноо сонгогч удахгүй нэмэгдэнэ.')}
+            accessibilityLabel="Аяллын огноо"
+          />
+
+          <PrimaryButton
+            onPress={submit}
+            disabled={!(origin || originCity) || !(destination || destCity) || !date}
+            accessibilityLabel="Аяллыг хайх"
+          >
+            Хайх
+          </PrimaryButton>
+        </Section>
       </View>
 
-      {/* Search Card */}
-      <View style={styles.searchCard}>
-        {/* From */}
-        <Pressable 
-          style={styles.inputField}
-          onPress={() => {
-            // Preserve current selection in URL when navigating
-            const currentParams: any = {};
-            if (origin) currentParams.originId = String(origin);
-            if (originCity) currentParams.originCityId = String(originCity);
-            if (destination) currentParams.destId = String(destination);
-            if (destCity) currentParams.destCityId = String(destCity);
-            router.push({ 
-              pathname: '/locationSelect', 
-              params: { 
-                type: 'origin', 
-                cityId: originCity ? String(originCity) : '',
-                ...currentParams
-              } 
-            });
-          }}
-        >
-          <ThemedText style={styles.inputIcon}>🏢</ThemedText>
-          <View style={styles.inputContent}>
-            <ThemedText style={styles.inputLabel}>Хаанаас</ThemedText>
-            <ThemedText style={styles.inputValue}>
-              {origin ? getStationName(origin, originStations) : getCityName(originCity) || 'Сонгох'}
-            </ThemedText>
-          </View>
-        </Pressable>
-
-        {/* To */}
-        <Pressable 
-          style={styles.inputField}
-          onPress={() => {
-            // Preserve current selection in URL when navigating
-            const currentParams: any = {};
-            if (origin) currentParams.originId = String(origin);
-            if (originCity) currentParams.originCityId = String(originCity);
-            if (destination) currentParams.destId = String(destination);
-            if (destCity) currentParams.destCityId = String(destCity);
-            router.push({ 
-              pathname: '/locationSelect', 
-              params: { 
-                type: 'destination', 
-                cityId: destCity ? String(destCity) : '',
-                ...currentParams
-              } 
-            });
-          }}
-        >
-          <ThemedText style={styles.inputIcon}>📍</ThemedText>
-          <View style={styles.inputContent}>
-            <ThemedText style={styles.inputLabel}>Хаашаа</ThemedText>
-            <ThemedText style={styles.inputValue}>
-              {destination ? getStationName(destination, destStations) : getCityName(destCity) || 'Сонгох'}
-            </ThemedText>
-          </View>
-        </Pressable>
-
-        {/* Date */}
-        <Pressable 
-          style={styles.inputField}
-          onPress={() => {
-            // TODO: Open date picker
-            Alert.alert('Date Picker', 'Date picker will be implemented');
-          }}
-        >
-          <ThemedText style={styles.inputIcon}>📅</ThemedText>
-          <View style={styles.inputContent}>
-            <ThemedText style={styles.inputLabel}>Огноо</ThemedText>
-            <ThemedText style={styles.inputValue}>{formatDate(date)}</ThemedText>
-          </View>
-        </Pressable>
-
-        {/* Search Button */}
-        <Pressable 
-          onPress={submit} 
-          style={[styles.searchButton, (!(origin || originCity) || !(destination || destCity) || !date) && styles.searchButtonDisabled]}
-          disabled={!(origin || originCity) || !(destination || destCity) || !date}
-        >
-          <ThemedText style={styles.searchIcon}>🔍</ThemedText>
-          <ThemedText style={styles.searchButtonText}>Хайх</ThemedText>
-        </Pressable>
-      </View>
-
-      {/* Help Section */}
-      <View style={styles.helpSection}>
-        <ThemedText style={styles.helpTitle}>Танд тусалъя</ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.helpCards}>
-          <View style={styles.helpCard}>
-            <View style={styles.helpIcon}>
-              <ThemedText>❓</ThemedText>
+      <Section title="Танд тусалъя" subtitle="Түгээмэл асуултын хариулт">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.helpCards}>
+          {helpItems.map((item) => (
+            <View key={item.question} style={styles.helpCard}>
+              <IconBadge icon="❓" />
+              <ThemedText style={styles.helpQuestion}>{item.question}</ThemedText>
+              <ThemedText style={styles.helpAnswer}>{item.answer}</ThemedText>
             </View>
-            <ThemedText style={styles.helpQuestion}>
-              Онлайн захиалгын үйлчилгээ нь ямар нэмэлт шимтгэл байгаа эсэх?
-            </ThemedText>
-            <ThemedText style={styles.helpAnswer}>Байхгүй.</ThemedText>
-          </View>
-          <View style={styles.helpCard}>
-            <View style={styles.helpIcon}>
-              <ThemedText>❓</ThemedText>
-            </View>
-            <ThemedText style={styles.helpQuestion}>
-              Захиалгаа хэрхэн цуцлах вэ?
-            </ThemedText>
-            <ThemedText style={styles.helpAnswer}>Захиалгын түүхээс цуцлана уу.</ThemedText>
-          </View>
+          ))}
         </ScrollView>
-      </View>
-    </ThemedView>
+      </Section>
+    </Screen>
+  );
+}
+
+const helpItems = [
+  {
+    question: 'Онлайн захиалгын үйлчилгээ нэмэлт шимтгэл авдаг уу?',
+    answer: 'Үгүй. Та зөвхөн тасалбарын үнийг төлнө.',
+  },
+  {
+    question: 'Захиалгаа хэрхэн цуцлах вэ?',
+    answer: 'Профайл > Захиалгын түүх хэсгээс цуцлах боломжтой.',
+  },
+];
+
+function IconBadge({ icon }: { icon: string }) {
+  return (
+    <View style={styles.iconBadge}>
+      <ThemedText style={styles.iconBadgeText}>{icon}</ThemedText>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BrandColors.primary,
+  screenContent: {
+    paddingBottom: 80,
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  headerSubtitle: {
-    marginTop: 8,
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  headerCard: {
-    marginTop: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  headerCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerCardText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  searchCard: {
+  card: {
     backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: -20,
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 20,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  inputField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 6,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: BrandColors.border,
   },
-  inputIcon: {
-    fontSize: 20,
-  },
-  inputContent: {
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  inputValue: {
-    fontSize: 16,
-    color: '#111827',
-    fontWeight: '500',
-  },
-  searchButton: {
-    flexDirection: 'row',
+  iconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: BrandColors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BrandColors.onPrimary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 8,
-    marginTop: 8,
-    borderWidth: 2,
-    borderColor: BrandColors.primary,
   },
-  searchButtonDisabled: {
-    backgroundColor: BrandColors.buttonDisabled,
-    borderColor: BrandColors.buttonDisabled,
-  },
-  searchIcon: {
-    fontSize: 20,
-    color: BrandColors.primary,
-  },
-  searchButtonText: {
-    color: BrandColors.primary,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  helpSection: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
-  helpTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
+  iconBadgeText: {
+    fontSize: 22,
   },
   helpCards: {
     gap: 12,
+    paddingRight: 12,
   },
   helpCard: {
+    width: 280,
+    borderRadius: 20,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    width: 300,
-    marginRight: 12,
-  },
-  helpIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f3f4f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: BrandColors.border,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 3,
+    gap: 10,
   },
   helpQuestion: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 8,
-    lineHeight: 20,
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: '600',
+    lineHeight: 22,
   },
   helpAnswer: {
     fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
+    color: '#475569',
   },
 });

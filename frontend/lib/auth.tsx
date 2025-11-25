@@ -1,93 +1,116 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-type User = { id: number; name: string; email: string; token?: string };
-type StoredUser = User & { password: string };
+import { Api, UserSummary } from '@/lib/api';
+
+type User = UserSummary;
+type SessionState = { token: string; user: User };
 
 type AuthContextType = {
   user: User | null;
+  token: string | null;
   initializing: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
-const STORAGE_KEY = 'mway.auth.user.v1';
-const USERS_KEY = 'mway.auth.users.v1';
-
-async function readStoredUsers(): Promise<StoredUser[]> {
-  try {
-    const raw = await AsyncStorage.getItem(USERS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.warn('Failed to parse stored users', e);
-    return [];
-  }
-}
-
-async function writeStoredUsers(users: StoredUser[]) {
-  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
+const STORAGE_KEY = 'mway.auth.session.v1';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (raw) {
-          const parsed = JSON.parse(raw) as User;
-          setUser(parsed);
+    let active = true;
+
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        let parsed: SessionState | null = null;
+        try {
+          parsed = JSON.parse(raw) as SessionState;
+        } catch {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          return;
         }
-      })
-      .finally(() => setInitializing(false));
+        if (!parsed?.token) {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        try {
+          const profile = await Api.auth.me(parsed.token);
+          if (!active) return;
+          setToken(parsed.token);
+          setUser(profile);
+          await AsyncStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ token: parsed.token, user: profile })
+          );
+        } catch {
+          await AsyncStorage.removeItem(STORAGE_KEY);
+        }
+      } finally {
+        if (active) {
+          setInitializing(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const persistSession = useCallback(async (session: SessionState | null) => {
+    if (session) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    } else {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    }
   }, []);
 
   const value = useMemo<AuthContextType>(() => ({
     user,
+    token,
     initializing,
     login: async (email: string, password: string) => {
       if (!email?.trim() || !password) throw new Error('Имэйл болон нууц үг шаардлагатай');
       const normalizedEmail = email.trim().toLowerCase();
-      const users = await readStoredUsers();
-      const found = users.find((u) => u.email.toLowerCase() === normalizedEmail);
-      if (!found || found.password !== password) {
-        throw new Error('Имэйл эсвэл нууц үг буруу байна');
-      }
-      const sessionUser: User = { id: found.id, name: found.name, email: found.email };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-      setUser(sessionUser);
+      const { token: authToken, user: nextUser } = await Api.auth.login({
+        email: normalizedEmail,
+        password,
+      });
+      const session: SessionState = { token: authToken, user: nextUser };
+      await persistSession(session);
+      setToken(authToken);
+      setUser(nextUser);
     },
     register: async (name: string, email: string, password: string) => {
       if (!name?.trim() || !email?.trim() || !password) {
         throw new Error('Нэр, имэйл, нууц үг заавал шаардлагатай');
       }
       const normalizedEmail = email.trim().toLowerCase();
-      const users = await readStoredUsers();
-      if (users.some((u) => u.email.toLowerCase() === normalizedEmail)) {
-        throw new Error('Энэ имэйлээр аль хэдийн бүртгэл хийгдсэн байна');
-      }
-      const newUser: StoredUser = {
-        id: Date.now(),
-        name: name.trim(),
+      const trimmedName = name.trim();
+      await Api.auth.register({
+        name: trimmedName,
         email: normalizedEmail,
         password,
-      };
-      await writeStoredUsers([...users, newUser]);
-      const sessionUser: User = { id: newUser.id, name: newUser.name, email: newUser.email };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser));
-      setUser(sessionUser);
-    },
-    logout: async () => {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      });
+      await persistSession(null);
+      setToken(null);
       setUser(null);
     },
-  }), [user, initializing]);
+    logout: async () => {
+      await persistSession(null);
+      setToken(null);
+      setUser(null);
+    },
+  }), [user, token, initializing, persistSession]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -97,5 +120,4 @@ export function useAuth(): AuthContextType {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-
 

@@ -13,8 +13,12 @@ const tintColorDark = '#93C5FD';
 export const BrandColors = {
   primary: primaryBlue,
   primaryDark: primaryBlueDark,
+  primarySoft: '#DBEAFE',
   onPrimary: '#FFFFFF',
   buttonDisabled: '#E2E8F0',
+  surface: '#F8FAFC',
+  border: '#E2E8F0',
+  warning: '#F97316',
 };
 
 export const Colors = {
