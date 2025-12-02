@@ -1,41 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { SeatGrid, SeatCell } from '@/components/seat-grid';
 import { Api, Trip } from '@/lib/api';
+import { Screen, ScreenHeader } from '@/components/ui/screen';
 
 function buildDemoLayout(): SeatCell[][] {
   const rows: SeatCell[][] = [];
   let n = 1;
-  for (let i = 0; i < 10; i += 1) {
+  // 6 rows of 4 seats: 1-24
+  for (let i = 0; i < 6; i += 1) {
     rows.push([
       { code: String(n++), status: 'available' },
       { code: String(n++), status: 'available' },
-      { code: null },
       { code: String(n++), status: 'available' },
       { code: String(n++), status: 'available' },
     ]);
   }
-  // Mark some as reserved
-  rows[1][0].status = 'reserved'; // 3
-  rows[2][4].status = 'reserved'; // 8
-  rows[5][1].status = 'reserved'; // 22
-  rows[6][3].status = 'reserved'; // 24
-  rows[7][0].status = 'reserved'; // 25
-  rows[8][2].status = 'reserved'; // 28
-  rows[9][1].status = 'reserved'; // 30
-  rows[9][3].status = 'reserved'; // 32
-
-  // Back row
-  rows.push([
-    { code: String(n++), status: 'available' },
-    { code: String(n++), status: 'available' },
-    { code: String(n++), status: 'available' },
-    { code: String(n++), status: 'available' },
-    { code: String(n++), status: 'available' },
-  ]);
+  // Example: mark seat 9 as reserved in the demo
+  rows[2][0].status = 'reserved';
   return rows;
 }
 
@@ -62,18 +46,23 @@ export default function SeatsScreen() {
         const serverLayout = (res.layout || []) as any[];
         const booked = new Set<string>((res.booked || []).map(String));
         const locked = new Set<string>((res.locked || []).map(String));
+
         const mapped: SeatCell[][] = serverLayout.map((row: any[]) =>
-          row.map((cell: any) => {
-            if (!cell?.code) return { code: null };
-            const code = String(cell.code);
-            const status = booked.has(code) || locked.has(code) ? 'reserved' : 'available';
-            return { code, status };
-          })
+          row
+            .filter((cell: any) => cell && cell.code != null)
+            .map((cell: any) => {
+              const code = String(cell.code);
+              const status: 'available' | 'reserved' =
+                booked.has(code) || locked.has(code) ? 'reserved' : 'available';
+              return { code, status } as SeatCell;
+            })
         );
+
         if (mapped.length > 0) {
           setLayout(mapped);
         }
       })
+
       .catch(() => {});
   }, [tripId]);
 
@@ -151,26 +140,27 @@ export default function SeatsScreen() {
     }
   };
 
-  const availableCount = layout.flat().filter(c => c.code && c.status === 'available').length;
+  const availableCount = layout.flat().filter((c) => c.code && c.status === 'available').length;
+  const seatCount = selected.size;
+  const basePrice = trip?.base_price ? Number(trip.base_price) : 0;
+  const totalPrice = seatCount * basePrice;
+  const selectedList = Array.from(selected)
+    .sort((a, b) => Number(a) - Number(b))
+    .join(', ');
+
+  const headerSubtitle = trip
+    ? `${trip.route.origin.city.name} → ${trip.route.destination.city.name} · ${formatDate(trip.depart_at)}`
+    : undefined;
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText style={styles.backIcon}>‹</ThemedText>
-        </Pressable>
-        <View style={styles.headerContent}>
-          <ThemedText style={styles.routeText}>
-            {trip ? `${trip.route.origin.city.name} - ${trip.route.destination.city.name}` : 'Route'}
-          </ThemedText>
-          <ThemedText style={styles.dateText}>
-            {trip ? formatDate(trip.depart_at) : formatDate(new Date().toISOString())}
-          </ThemedText>
-        </View>
-      </View>
+    <Screen scrollable>
+      <ScreenHeader
+        eyebrow="Trip"
+        title="Суудал сонгох"
+        subtitle={headerSubtitle}
+      />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <View style={styles.contentWrapper}>
         {/* Bus Details Card */}
         <View style={styles.busDetailsCard}>
           <View style={styles.busHeader}>
@@ -179,7 +169,7 @@ export default function SeatsScreen() {
               {trip?.bus?.plate_number || 'N/A'} УКМ
             </ThemedText>
           </View>
-          
+
           <View style={styles.busInfo}>
             <View style={styles.busInfoRow}>
               <ThemedText style={styles.busInfoLabel}>Аж ахуй нэгж:</ThemedText>
@@ -267,6 +257,9 @@ export default function SeatsScreen() {
 
         {/* Seat Selection Title */}
         <ThemedText style={styles.seatTitle}>Суудал сонгох</ThemedText>
+        <ThemedText style={styles.seatSubtitle}>
+          Нэг захиалга дээр хамгийн ихдээ {maxSelect} суудал сонгох боломжтой.
+        </ThemedText>
 
         {/* Legend */}
         <View style={styles.legend}>
@@ -290,69 +283,37 @@ export default function SeatsScreen() {
         <View style={styles.gridContainer}>
           <SeatGrid layout={layout} selected={selected} onToggle={toggle} />
         </View>
-      </ScrollView>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <ThemedText style={styles.selectedText}>
-          Сонгосон: {Array.from(selected).sort((a, b) => Number(a) - Number(b)).join(', ') || '—'}
-        </ThemedText>
-        <Pressable 
-          onPress={onProceed} 
-          style={({ pressed }) => [styles.continueButton, pressed && styles.continueButtonPressed]}
-          disabled={selected.size === 0}
-        >
-          <ThemedText style={styles.continueButtonText}>Үргэлжлүүлэх</ThemedText>
-        </Pressable>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <ThemedText style={styles.selectedText}>
+            Сонгосон: {seatCount || '0'} суудал
+            {selectedList ? ` (${selectedList})` : ''}
+            {basePrice > 0
+              ? `\nНийт үнэ: ${totalPrice.toLocaleString()} MNT`
+              : ''}
+          </ThemedText>
+          <Pressable
+            onPress={onProceed}
+            style={({ pressed }) => [
+              styles.continueButton,
+              pressed && styles.continueButtonPressed,
+              selected.size === 0 && styles.continueButtonDisabled,
+            ]}
+            disabled={selected.size === 0}
+          >
+            <ThemedText style={styles.continueButtonText}>Үргэлжлүүлэх</ThemedText>
+          </Pressable>
+        </View>
       </View>
-    </ThemedView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: '#111827',
-    fontWeight: 'bold',
-  },
-  headerContent: {
-    flex: 1,
-  },
-  routeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  dateText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
+  contentWrapper: {
+    paddingVertical: 8,
+    gap: 24,
   },
   busDetailsCard: {
     backgroundColor: '#fff',
@@ -409,6 +370,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#111827',
+    marginBottom: 16,
+  },
+  seatSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
     marginBottom: 16,
   },
   legend: {
@@ -475,6 +441,12 @@ const styles = StyleSheet.create({
   continueButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
+  },
+  continueButtonDisabled: {
+    backgroundColor: '#e5e7eb',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   continueButtonText: {
     color: '#fff',

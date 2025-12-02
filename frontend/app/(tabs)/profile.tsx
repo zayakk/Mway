@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, ScrollView, View, TouchableOpacity, Platform } from 'react-native';
+import { Alert, Pressable, StyleSheet, View, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { useAuth } from '@/lib/auth';
 import { BrandColors } from '@/constants/theme';
 import { Screen, ScreenHeader } from '@/components/ui/screen';
@@ -90,44 +89,29 @@ export default function ProfileScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <ScreenHeader
-        eyebrow="Trip planner"
-        title="Автобусны хайлт"
-        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
+    <Screen scrollable>
+      <ScreenHeader
+        eyebrow="Profile"
+        title="Миний мэдээлэл"
+        subtitle="Өөрийн бүртгэлийн мэдээлэл болон тохиргоог удирдаарай."
       />
-      </View> */}
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* <ScreenHeader
-        eyebrow="Trip planner"
-        title="Автобусны хайлт"
-        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
-      /> */}
-        <View style={styles.contentWrapper}>
-          {/* Profile Card */}
-                  <ScreenHeader
-        eyebrow="Trip planner"
-        title="Автобусны хайлт"
-        subtitle="Хот хоорондын аяллаа хэдхэн алхамаар эхлүүлээрэй."
-      />
-          <View style={styles.profileCard}>
-            
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <ThemedText style={styles.avatarText}>
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </ThemedText>
-              </View>
-            </View>
-            
-            <View style={styles.profileInfo}>
-              <ThemedText style={styles.profileName}>{user?.name || 'Хэрэглэгч'}</ThemedText>
-              <ThemedText style={styles.profileEmail}>{user?.email || '—'}</ThemedText>
+      <View style={styles.contentWrapper}>
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <ThemedText style={styles.avatarText}>
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </ThemedText>
             </View>
           </View>
+
+          <View style={styles.profileInfo}>
+            <ThemedText style={styles.profileName}>{user?.name || 'Хэрэглэгч'}</ThemedText>
+            <ThemedText style={styles.profileEmail}>{user?.email || '—'}</ThemedText>
+          </View>
+        </View>
 
           {/* Quick actions */}
           <View style={styles.quickActions}>
@@ -232,79 +216,30 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Support Card */}
-          <View style={styles.supportCard}>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.supportTitle}>Системээс гарах уу?</ThemedText>
-              <ThemedText style={styles.supportText}>
-                Дараагийн нэвтрэх үед таны мэдээллийг дахин баталгаажуулах болно.
-              </ThemedText>
-            </View>
-            <TouchableOpacity
-              style={[styles.supportButton, loading && styles.logoutButtonDisabled]}
-              onPress={handleLogout}
-              disabled={loading}
-            >
-              <ThemedText style={styles.supportButtonText}>
-                {loading ? 'Гараж байна...' : 'Гарах'}
-              </ThemedText>
-            </TouchableOpacity>
+        {/* Support Card */}
+        <View style={styles.supportCard}>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.supportTitle}>Системээс гарах уу?</ThemedText>
+            <ThemedText style={styles.supportText}>
+              Дараагийн нэвтрэх үед таны мэдээллийг дахин баталгаажуулах болно.
+            </ThemedText>
           </View>
+          <TouchableOpacity
+            style={[styles.supportButton, loading && styles.logoutButtonDisabled]}
+            onPress={handleLogout}
+            disabled={loading}
+          >
+            <ThemedText style={styles.supportButtonText}>
+              {loading ? 'Гараж байна...' : 'Гарах'}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-
-      {/* Logout Button */}
-      {/* <View style={styles.footer}>
-        <TouchableOpacity
-          onPress={handleLogout}
-            style={[
-              styles.logoutButton,
-              loading && styles.logoutButtonDisabled
-            ]}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <ThemedText style={styles.logoutButtonText}>
-            {loading ? 'Гараж байна...' : 'Гарах'}
-          </ThemedText>
-        </TouchableOpacity>
-      </View> */}
-    </ThemedView>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BrandColors.primary,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-  },
-  headerGreeting: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 6,
-  },
-  headerTitle: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  scrollContent: {
-    paddingBottom: 160,
-  },
   contentWrapper: {
     paddingHorizontal: 20,
     paddingTop: 0,

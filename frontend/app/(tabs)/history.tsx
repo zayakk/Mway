@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View, ScrollView } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
 import { listBookings, StoredBooking } from '@/lib/orders';
+import { Screen, ScreenHeader } from '@/components/ui/screen';
+import { Section } from '@/components/ui/section';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -32,12 +33,17 @@ export default function HistoryScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.headerTitle}>Захиалгын түүх</ThemedText>
-        <ThemedText style={styles.headerSubtitle}>Сүүлд хийсэн бүх захиалгаа эндээс үзнэ үү</ThemedText>
-      </View>
-      <ScrollView contentContainerStyle={styles.content}>
+    <Screen scrollable contentContainerStyle={styles.screenContent}>
+      <ScreenHeader
+        eyebrow="Bookings"
+        title="Захиалгын түүх"
+        subtitle="Сүүлд хийсэн бүх захиалгаа эндээс үзнэ үү."
+      />
+
+      <Section
+        title="Миний захиалгууд"
+        subtitle={items.length ? 'Өнгөрсөн болон идэвхтэй захиалгууд' : 'Одоогоор захиалга алга'}
+      >
         {items.map((b) => (
           <Pressable key={`${b.id}-${b.createdAt}`} style={styles.card} onPress={() => open(b)}>
             <View style={styles.cardHeader}>
@@ -49,41 +55,21 @@ export default function HistoryScreen() {
             <ThemedText style={styles.cardDate}>{new Date(b.createdAt).toLocaleString()}</ThemedText>
           </Pressable>
         ))}
+
         {!items.length && (
           <View style={styles.emptyState}>
             <ThemedText style={styles.emptyTitle}>Одоогоор захиалга алга</ThemedText>
             <ThemedText style={styles.emptyText}>Хайлт хийж шинэ аялал захиалаарай.</ThemedText>
           </View>
         )}
-      </ScrollView>
-    </ThemedView>
+      </Section>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: BrandColors.primary,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 6,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  content: {
-    padding: 20,
-    paddingTop: 0,
-    gap: 12,
+  screenContent: {
+    paddingBottom: 80,
   },
   card: {
     backgroundColor: '#fff',
@@ -120,7 +106,7 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   emptyState: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: '#f9fafb',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',

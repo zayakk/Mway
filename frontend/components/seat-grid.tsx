@@ -9,17 +9,30 @@ export interface SeatCell {
 }
 
 export interface SeatGridProps {
-  layout: SeatCell[][]; // rows of 5 cells: L1, L2, AISLE(null), R1, R2 (last row can have 5)
+  layout: SeatCell[][]; // raw layout from backend or demo
   selected: Set<string>;
   onToggle: (code: string) => void;
 }
 
 export function SeatGrid({ layout, selected, onToggle }: SeatGridProps) {
-  const normalized = useMemo(() => layout.map(row => row.map(cell => {
-    if (!cell.code) return cell;
-    const status: SeatStatus = cell.status ?? (selected.has(cell.code) ? 'selected' : 'available');
-    return { ...cell, status };
-  })), [layout, selected]);
+  // Normalize status and flatten, then sort numerically and regroup into rows of 4
+  const rows4 = useMemo(() => {
+    const withStatus: SeatCell[] = layout
+      .flat()
+      .filter((cell) => cell && cell.code !== null)
+      .map((cell) => {
+        const code = String(cell.code);
+        const status: SeatStatus = cell.status ?? (selected.has(code) ? 'selected' : 'available');
+        return { code, status } as SeatCell;
+      })
+      .sort((a, b) => Number(a.code) - Number(b.code));
+
+    const rows: SeatCell[][] = [];
+    for (let i = 0; i < withStatus.length; i += 4) {
+      rows.push(withStatus.slice(i, i + 4));
+    }
+    return rows;
+  }, [layout, selected]);
 
   return (
     <View style={styles.wrapper}>
@@ -28,20 +41,15 @@ export function SeatGrid({ layout, selected, onToggle }: SeatGridProps) {
         <ThemedText style={styles.header}>Урд хаалга</ThemedText>
       </View>
       <View style={styles.body}>
-        {normalized.map((row, idx) => (
+        {rows4.map((row, idx) => (
           <View key={idx} style={styles.row}>
             {row.map((cell, j) => (
-              <Fragment key={j}>
-                {cell.code === null ? (
-                  <View style={styles.aisle} />
-                ) : (
-                  <Seat
-                    code={cell.code}
-                    status={cell.status as SeatStatus}
-                    onPress={() => onToggle(cell.code!)}
-                  />
-                )}
-              </Fragment>
+              <Seat
+                key={j}
+                code={cell.code!}
+                status={cell.status as SeatStatus}
+                onPress={() => onToggle(cell.code!)}
+              />
             ))}
           </View>
         ))}
@@ -66,7 +74,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
   },
-  aisle: { width: 24 },
 });
 
 
